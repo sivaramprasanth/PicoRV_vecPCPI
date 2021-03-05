@@ -1,0 +1,18 @@
+INFO: [VRFC 10-2263] Analyzing Verilog file "/home/prasanth/Desktop/iiitb/4_year/8-sem/NR-PE/pico_vecPCPI/picorv32.v" into library xil_defaultlib
+INFO: [VRFC 10-311] analyzing module picorv32
+WARNING: [VRFC 10-2654] begin/end is required for generate-for in this mode of verilog [/home/prasanth/Desktop/iiitb/4_year/8-sem/NR-PE/pico_vecPCPI/picorv32.v:1623]
+WARNING: [VRFC 10-3380] identifier 'vreg_op1' is used before its declaration [/home/prasanth/Desktop/iiitb/4_year/8-sem/NR-PE/pico_vecPCPI/picorv32.v:209]
+WARNING: [VRFC 10-3380] identifier 'vreg_op2' is used before its declaration [/home/prasanth/Desktop/iiitb/4_year/8-sem/NR-PE/pico_vecPCPI/picorv32.v:210]
+WARNING: [VRFC 10-3380] identifier 'vsew' is used before its declaration [/home/prasanth/Desktop/iiitb/4_year/8-sem/NR-PE/pico_vecPCPI/picorv32.v:1363]
+WARNING: [VRFC 10-3380] identifier 'vlmul' is used before its declaration [/home/prasanth/Desktop/iiitb/4_year/8-sem/NR-PE/pico_vecPCPI/picorv32.v:1364]
+WARNING: [VRFC 10-3380] identifier 'decoded_rs' is used before its declaration [/home/prasanth/Desktop/iiitb/4_year/8-sem/NR-PE/pico_vecPCPI/picorv32.v:1401]
+WARNING: [VRFC 10-3380] identifier 'vreg_op1' is used before its declaration [/home/prasanth/Desktop/iiitb/4_year/8-sem/NR-PE/pico_vecPCPI/picorv32.v:1528]
+INFO: [VRFC 10-311] analyzing module picorv32_regs
+INFO: [VRFC 10-311] analyzing module vector_regs
+INFO: [VRFC 10-311] analyzing module picorv32_pcpi_mul
+INFO: [VRFC 10-311] analyzing module picorv32_pcpi_fast_mul
+INFO: [VRFC 10-311] analyzing module picorv32_pcpi_div
+INFO: [VRFC 10-311] analyzing module picorv32_pcpi_vecadd
+INFO: [VRFC 10-311] analyzing module picorv32_pcpi_vecdot
+INFO: [VRFC 10-2263] Analyzing Verilog file "/home/prasanth/Desktop/iiitb/4_year/8-sem/NR-PE/pico_vecPCPI/testbench_ez_vec.v" into library xil_defaultlib
+INFO: [VRFC 10-311] analyzing module testbench

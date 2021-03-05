@@ -1,0 +1,135 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<wave_config>
+   <wave_state>
+   </wave_state>
+   <db_ref_list>
+      <db_ref path="testbench_behav.wdb" id="1">
+         <top_modules>
+            <top_module name="glbl" />
+            <top_module name="testbench" />
+         </top_modules>
+      </db_ref>
+   </db_ref_list>
+   <zoom_setting>
+      <ZoomStartTime time="0fs"></ZoomStartTime>
+      <ZoomEndTime time="7810001fs"></ZoomEndTime>
+      <Cursor1Time time="0fs"></Cursor1Time>
+   </zoom_setting>
+   <column_width_setting>
+      <NameColumnWidth column_width="168"></NameColumnWidth>
+      <ValueColumnWidth column_width="66"></ValueColumnWidth>
+   </column_width_setting>
+   <WVObjectSize size="28" />
+   <wvobject type="logic" fp_name="/testbench/clk">
+      <obj_property name="ElementShortName">clk</obj_property>
+      <obj_property name="ObjectShortName">clk</obj_property>
+   </wvobject>
+   <wvobject type="logic" fp_name="/testbench/resetn">
+      <obj_property name="ElementShortName">resetn</obj_property>
+      <obj_property name="ObjectShortName">resetn</obj_property>
+   </wvobject>
+   <wvobject type="logic" fp_name="/testbench/trap">
+      <obj_property name="ElementShortName">trap</obj_property>
+      <obj_property name="ObjectShortName">trap</obj_property>
+   </wvobject>
+   <wvobject type="array" fp_name="/testbench/ix">
+      <obj_property name="ElementShortName">ix[31:0]</obj_property>
+      <obj_property name="ObjectShortName">ix[31:0]</obj_property>
+   </wvobject>
+   <wvobject type="logic" fp_name="/testbench/mem_valid">
+      <obj_property name="ElementShortName">mem_valid</obj_property>
+      <obj_property name="ObjectShortName">mem_valid</obj_property>
+   </wvobject>
+   <wvobject type="logic" fp_name="/testbench/mem_instr">
+      <obj_property name="ElementShortName">mem_instr</obj_property>
+      <obj_property name="ObjectShortName">mem_instr</obj_property>
+   </wvobject>
+   <wvobject type="logic" fp_name="/testbench/mem_ready">
+      <obj_property name="ElementShortName">mem_ready</obj_property>
+      <obj_property name="ObjectShortName">mem_ready</obj_property>
+   </wvobject>
+   <wvobject type="array" fp_name="/testbench/mem_addr">
+      <obj_property name="ElementShortName">mem_addr[31:0]</obj_property>
+      <obj_property name="ObjectShortName">mem_addr[31:0]</obj_property>
+   </wvobject>
+   <wvobject type="array" fp_name="/testbench/mem_rdata">
+      <obj_property name="ElementShortName">mem_rdata[31:0]</obj_property>
+      <obj_property name="ObjectShortName">mem_rdata[31:0]</obj_property>
+   </wvobject>
+   <wvobject type="array" fp_name="/testbench/uut/vecregs_rdata1">
+      <obj_property name="ElementShortName">vecregs_rdata1[511:0]</obj_property>
+      <obj_property name="ObjectShortName">vecregs_rdata1[511:0]</obj_property>
+   </wvobject>
+   <wvobject type="array" fp_name="/testbench/uut/vecregs_rdata2">
+      <obj_property name="ElementShortName">vecregs_rdata2[511:0]</obj_property>
+      <obj_property name="ObjectShortName">vecregs_rdata2[511:0]</obj_property>
+   </wvobject>
+   <wvobject type="array" fp_name="/testbench/uut/vecregs_raddr1">
+      <obj_property name="ElementShortName">vecregs_raddr1[4:0]</obj_property>
+      <obj_property name="ObjectShortName">vecregs_raddr1[4:0]</obj_property>
+   </wvobject>
+   <wvobject type="array" fp_name="/testbench/uut/vecregs_raddr2">
+      <obj_property name="ElementShortName">vecregs_raddr2[4:0]</obj_property>
+      <obj_property name="ObjectShortName">vecregs_raddr2[4:0]</obj_property>
+   </wvobject>
+   <wvobject type="array" fp_name="/testbench/uut/vreg_op1">
+      <obj_property name="ElementShortName">vreg_op1[511:0]</obj_property>
+      <obj_property name="ObjectShortName">vreg_op1[511:0]</obj_property>
+   </wvobject>
+   <wvobject type="array" fp_name="/testbench/uut/vreg_op2">
+      <obj_property name="ElementShortName">vreg_op2[511:0]</obj_property>
+      <obj_property name="ObjectShortName">vreg_op2[511:0]</obj_property>
+   </wvobject>
+   <wvobject type="array" fp_name="/testbench/uut/vecreg_inst/waddr">
+      <obj_property name="ElementShortName">waddr[4:0]</obj_property>
+      <obj_property name="ObjectShortName">waddr[4:0]</obj_property>
+   </wvobject>
+   <wvobject type="array" fp_name="/testbench/uut/vecreg_inst/wdata">
+      <obj_property name="ElementShortName">wdata[511:0]</obj_property>
+      <obj_property name="ObjectShortName">wdata[511:0]</obj_property>
+   </wvobject>
+   <wvobject type="array" fp_name="/testbench/uut/vecreg_inst/rdata1">
+      <obj_property name="ElementShortName">rdata1[511:0]</obj_property>
+      <obj_property name="ObjectShortName">rdata1[511:0]</obj_property>
+   </wvobject>
+   <wvobject type="array" fp_name="/testbench/uut/vecreg_inst/rdata2">
+      <obj_property name="ElementShortName">rdata2[511:0]</obj_property>
+      <obj_property name="ObjectShortName">rdata2[511:0]</obj_property>
+   </wvobject>
+   <wvobject type="array" fp_name="/testbench/uut/vecreg_inst/waddr">
+      <obj_property name="ElementShortName">waddr[4:0]</obj_property>
+      <obj_property name="ObjectShortName">waddr[4:0]</obj_property>
+   </wvobject>
+   <wvobject type="array" fp_name="/testbench/uut/vecreg_inst/wdata">
+      <obj_property name="ElementShortName">wdata[511:0]</obj_property>
+      <obj_property name="ObjectShortName">wdata[511:0]</obj_property>
+   </wvobject>
+   <wvobject type="array" fp_name="/testbench/uut/vecreg_inst/rdata1">
+      <obj_property name="ElementShortName">rdata1[511:0]</obj_property>
+      <obj_property name="ObjectShortName">rdata1[511:0]</obj_property>
+   </wvobject>
+   <wvobject type="array" fp_name="/testbench/uut/vecreg_inst/rdata2">
+      <obj_property name="ElementShortName">rdata2[511:0]</obj_property>
+      <obj_property name="ObjectShortName">rdata2[511:0]</obj_property>
+   </wvobject>
+   <wvobject type="logic" fp_name="/testbench/uut/pcpi_valid">
+      <obj_property name="ElementShortName">pcpi_valid</obj_property>
+      <obj_property name="ObjectShortName">pcpi_valid</obj_property>
+   </wvobject>
+   <wvobject type="logic" fp_name="/testbench/uut/pcpi_int_ready">
+      <obj_property name="ElementShortName">pcpi_int_ready</obj_property>
+      <obj_property name="ObjectShortName">pcpi_int_ready</obj_property>
+   </wvobject>
+   <wvobject type="logic" fp_name="/testbench/uut/ENABLE_VECADD">
+      <obj_property name="ElementShortName">ENABLE_VECADD</obj_property>
+      <obj_property name="ObjectShortName">ENABLE_VECADD</obj_property>
+   </wvobject>
+   <wvobject type="logic" fp_name="/testbench/uut/pcpi_vec_ready">
+      <obj_property name="ElementShortName">pcpi_vec_ready</obj_property>
+      <obj_property name="ObjectShortName">pcpi_vec_ready</obj_property>
+   </wvobject>
+   <wvobject type="logic" fp_name="/testbench/uut/\genblk3.pcpi_vecadd /pcpi_ready">
+      <obj_property name="ElementShortName">pcpi_ready</obj_property>
+      <obj_property name="ObjectShortName">pcpi_ready</obj_property>
+   </wvobject>
+</wave_config>
