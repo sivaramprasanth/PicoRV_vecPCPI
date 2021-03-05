@@ -1,6 +1,6 @@
 /*
  *  PicoRV32 -- A Small RISC-V (RV32I) Processor Core
- *
+ *	Working with different cores for diff vec_instrn and parametrized data bus (on march 5)
  *  Copyright (C) 2015  Clifford Wolf <clifford@clifford.at>
  *
  *  Permission to use, copy, modify, and/or distribute this software for any
@@ -78,6 +78,8 @@ module picorv32 #(
 	parameter [ 0:0] ENABLE_MUL = 0,
 	parameter [ 0:0] ENABLE_FAST_MUL = 0, //Enables PCPI and instantiates the picorv32_pcpi_fast_mul core that implements the MUL[H[SU|U]] instructions.
 	parameter [ 0:0] ENABLE_DIV = 0, //Enables PCPI and instantiates the picorv32_pcpi_div core that implements the DIV[U]/REM[U] instructions.
+	//VEC_BUS_WIDTH is for co-processors (It can have the values of 32,64 or 128 bits)
+	parameter [7:0]  VEC_BUS_WIDTH = 8'b10000000,
 	parameter [ 0:0] ENABLE_VECADD = 1, //Enables PCPI and instantiates the picorv32_pcpi_vecadd core
 	parameter [ 0:0] ENABLE_VECDOT = 1, //Enables PCPI and instantiates the picorv32_pcpi_vecdot core
 	parameter [ 0:0] ENABLE_IRQ = 0,
@@ -124,9 +126,9 @@ module picorv32 #(
 	input             pcpi_ready, //Co-processor asserts this flag after executing the instruction
 
 	// For vector instructions
-	output    [63:0] vec_pcpi_rs1, //Value stored in rs1 transferred to pcpi core
-	output    [63:0] vec_pcpi_rs2, //Value stored in rs1 transferred to pcpi core
-	input  	  [63:0] vec_pcpi_rd, //The output of pcpi_co-processor
+	output    [VEC_BUS_WIDTH-1:0] vec_pcpi_rs1, //Value stored in rs1 transferred to pcpi core
+	output    [VEC_BUS_WIDTH-1:0] vec_pcpi_rs2, //Value stored in rs1 transferred to pcpi core
+	input  	  [VEC_BUS_WIDTH-1:0] vec_pcpi_rd, //The output of pcpi_co-processor
 
 	// IRQ Interface
 	input      [31:0] irq,
@@ -196,10 +198,11 @@ module picorv32 #(
 	reg [31:0] dbg_insn_addr;
 
 	//Registers to send 512 bit data in pieces of 64 bits to pcpi
-	reg [63:0] vreg_pcpi_op1;
-	reg [63:0] vreg_pcpi_op2;
+	reg [VEC_BUS_WIDTH-1:0] vreg_pcpi_op1;
+	reg [VEC_BUS_WIDTH-1:0] vreg_pcpi_op2;
 	reg [7:0] elem_n;  //The no of elements already executed in pcpi 
-	wire [31:0]SEW  = (4*(2<<vsew));  //No of bits in each element	
+	reg [7:0] pcpi_elem_n; //The no of elements executed in pcpi co-processor
+	wire [31:0] SEW;  //No of bits in each element	
 
 	wire dbg_mem_valid = mem_valid;
 	wire dbg_mem_instr = mem_instr;
@@ -301,16 +304,19 @@ module picorv32 #(
 
 	//Output of vector add operation
 	wire 	     pcpi_vec_add_wr;
-	wire [63:0] pcpi_vec_add_rd;
+	wire [VEC_BUS_WIDTH-1:0]  pcpi_vec_add_rd;
 	wire		 pcpi_vec_add_wait;
 	wire		 pcpi_vec_add_ready;
 	wire 		 vecadd_result_ready;
+	reg [511:0]  vec_add_result; //To concatenate the output of co-processor for vector instrns
 
 	//Output of vector dot operation
 	wire 	     pcpi_vec_dot_wr;
-	wire [63:0] pcpi_vec_dot_rd;
+	wire [VEC_BUS_WIDTH-1:0]  pcpi_vec_dot_rd;
 	wire		 pcpi_vec_dot_wait;
 	wire		 pcpi_vec_dot_ready;
+	wire 		 vecdot_result_ready;
+	reg [511:0]  vec_dot_result;
 	
 	reg [511:0] valu_out; //To store vector operation output
 
@@ -373,11 +379,11 @@ module picorv32 #(
 	end endgenerate
 
 	generate if (ENABLE_VECADD) begin
-		picorv32_pcpi_vecadd pcpi_vecadd(
+		picorv32_pcpi_vecadd #(.BUS_WIDTH (VEC_BUS_WIDTH)) pcpi_vecadd(
 			.clk(clk),
 			.resetn(resetn),
 			.pcpi_valid(pcpi_valid),
-			.elem_n(elem_n), //newly added to know the number of elements
+			.elem_n(pcpi_elem_n), //newly added to know the number of elements
 		 	.SEW(SEW),    //Sending SEW to co-processor 
 			.pcpi_insn(pcpi_insn),
 			.pcpi_vecrs1(vec_pcpi_rs1),
@@ -390,39 +396,43 @@ module picorv32 #(
 		);
 	end else begin
 		assign pcpi_vec_add_wr = 0;
-		assign pcpi_vec_add_rd = 511'bx;
+		assign pcpi_vec_add_rd = 32'bx;
 		assign pcpi_vec_add_wait = 0;
 		assign pcpi_vec_add_ready = 0;
 		assign vecadd_result_ready = 0; //newly added
 	end endgenerate
 
-	// generate if (ENABLE_VECDOT) begin
-	// 	picorv32_pcpi_vecdot pcpi_vecdot(
-	// 		.clk(clk),
-	// 		.resetn(resetn),
-	// 		.pcpi_valid(pcpi_valid),
-	// 		.pcpi_insn(pcpi_insn),
-	// 		.pcpi_vecrs1(vec_pcpi_rs1),
-	// 		.pcpi_vecrs2(vec_pcpi_rs2),
-	// 		.pcpi_wr(pcpi_vec_dot_wr),
-	// 		.pcpi_rd(pcpi_vec_dot_rd),
-	// 		.pcpi_wait(pcpi_vec_dot_wait),
-	// 		.pcpi_ready(pcpi_vec_dot_ready)
-	// 	);
-	// end else begin
-	// 	assign pcpi_vec_dot_wr = 0;
-	// 	assign pcpi_vec_dot_rd = 64'bx;
-	// 	assign pcpi_vec_dot_wait = 0;
-	// 	assign pcpi_vec_dot_ready = 0;
-	// end endgenerate
+	generate if (ENABLE_VECDOT) begin
+		picorv32_pcpi_vecdot #(.BUS_WIDTH(VEC_BUS_WIDTH)) pcpi_vecdot(
+			.clk(clk),
+			.resetn(resetn),
+			.pcpi_valid(pcpi_valid),
+			.elem_n(pcpi_elem_n), //newly added to know the number of elements
+		 	.SEW(SEW),    //Sending SEW to co-processor 
+			.pcpi_insn(pcpi_insn),
+			.pcpi_vecrs1(vec_pcpi_rs1),
+			.pcpi_vecrs2(vec_pcpi_rs2),
+			.pcpi_wr(pcpi_vec_dot_wr),
+			.pcpi_rd(pcpi_vec_dot_rd),
+			.pcpi_wait(pcpi_vec_dot_wait),
+			.pcpi_ready(pcpi_vec_dot_ready),
+			.vec_res_ready(vecdot_result_ready) //newly added
+		);
+	end else begin
+		assign pcpi_vec_dot_wr = 0;
+		assign pcpi_vec_dot_rd = 32'bx;
+		assign pcpi_vec_dot_wait = 0;
+		assign pcpi_vec_dot_ready = 0;
+		assign vecdot_result_ready = 0;
+	end endgenerate
 
 	always @* begin
-		pcpi_int_wr = 0; //Used by store instruction
+		pcpi_int_wr = 0; //Used to write to rd register
 		pcpi_int_rd = 32'bx; //Used by load instruction
 		//pcpi_int_wait tells that the co-processor is doing some int operation
-		pcpi_int_wait  = |{ENABLE_PCPI && pcpi_wait,  (ENABLE_MUL || ENABLE_FAST_MUL) && pcpi_mul_wait,  ENABLE_DIV && pcpi_div_wait, ENABLE_VECADD && pcpi_vec_add_wait}; //, ENABLE_VECDOT && pcpi_vec_dot_wait
+		pcpi_int_wait  = |{ENABLE_PCPI && pcpi_wait, ENABLE_VECADD && pcpi_vec_add_wait,  ENABLE_VECDOT && pcpi_vec_dot_wait, (ENABLE_MUL || ENABLE_FAST_MUL) && pcpi_mul_wait,  ENABLE_DIV && pcpi_div_wait}; //,
 		//pcpi_int_ready tells that the processor has finished doing an operation
-		pcpi_int_ready = |{ENABLE_PCPI && pcpi_ready, (ENABLE_MUL || ENABLE_FAST_MUL) && pcpi_mul_ready, ENABLE_DIV && pcpi_div_ready, ENABLE_VECADD && vecadd_result_ready}; //, ENABLE_VECDOT && pcpi_vec_dot_ready
+		pcpi_int_ready = |{ENABLE_PCPI && pcpi_ready,ENABLE_VECADD && vecadd_result_ready, ENABLE_VECDOT && vecdot_result_ready, (ENABLE_MUL || ENABLE_FAST_MUL) && pcpi_mul_ready, ENABLE_DIV && pcpi_div_ready}; //, 
 
 		(* parallel_case *)
 		case (1'b1)
@@ -441,14 +451,15 @@ module picorv32 #(
 			//havetochange
 			ENABLE_VECADD && vecadd_result_ready: begin
 				// vecregs_write = pcpi_vec_wr;
-				valu_out = pcpi_vec_add_rd; 
+				valu_out = vec_add_result; 
+				$display("Vector add result: 0x%x", valu_out);
 			end
 			//havetochange
-			// ENABLE_VECDOT && vecadd_result_ready: begin
-			// 	// vecregs_write = pcpi_vec_wr;
-			// 	valu_out = pcpi_vec_dot_rd; 
-			// end
-
+			ENABLE_VECDOT && vecdot_result_ready: begin
+				// vecregs_write = pcpi_vec_wr;
+				valu_out = vec_dot_result;
+				$display("Vector dot result: 0x%x", valu_out);
+			end
 		endcase
 	end
 
@@ -457,9 +468,9 @@ module picorv32 #(
 ///////////////////////////////////////////////////////////////////////////////
 
 	reg [1:0] mem_state; //Memory state
-	reg [1:0] mem_wordsize; //To tell whether to read/write whole ord or a part of the word
+	reg [1:0] mem_wordsize; //To tell whether to read/write whole word or a part of the word
 	reg [31:0] mem_rdata_word; //Stores the data depending on mem_wordsize from mem_rdata i.e give from test bench 
-	reg [31:0] mem_rdata_q; //For compressed instructions
+	reg [31:0] mem_rdata_q; //Read data is stored in this variable
 	//All the flags defines below will be used in mem_state machine
 	reg mem_do_prefetch; 
 	reg mem_do_rinst; //Flag to read instruction
@@ -468,10 +479,10 @@ module picorv32 #(
 
 	wire mem_xfer; //memory transfer flag
 	reg mem_la_secondword, mem_la_firstword_reg, last_mem_valid;
+	//The below parameters are for compressed instructions
 	wire mem_la_firstword = COMPRESSED_ISA && (mem_do_prefetch || mem_do_rinst) && next_pc[1] && !mem_la_secondword;
 	wire mem_la_firstword_xfer = COMPRESSED_ISA && mem_xfer && (!last_mem_valid ? mem_la_firstword : mem_la_firstword_reg);
-
-///The below parameters are for compressed instructions
+	
 	reg prefetched_high_word;
 	reg clear_prefetched_high_word;
 	reg [15:0] mem_16bit_buffer;
@@ -480,7 +491,8 @@ module picorv32 #(
 	wire [31:0] mem_rdata_latched;
 
 	wire mem_la_use_prefetched_high_word = COMPRESSED_ISA && mem_la_firstword && prefetched_high_word && !clear_prefetched_high_word;
-//Until here ///////////////////////////////////////////
+	//Until here ///////////////////////////////////////////
+
 	assign mem_xfer = (mem_valid && mem_ready) || (mem_la_use_prefetched_high_word && mem_do_rinst);
 
 	wire mem_busy = |{mem_do_prefetch, mem_do_rinst, mem_do_rdata, mem_do_wdata};
@@ -492,7 +504,7 @@ module picorv32 #(
 			(COMPRESSED_ISA && mem_xfer && (!last_mem_valid ? mem_la_firstword : mem_la_firstword_reg) && !mem_la_secondword && &mem_rdata_latched[1:0]));
 	assign mem_la_addr = (mem_do_prefetch || mem_do_rinst) ? {next_pc[31:2] + mem_la_firstword_xfer, 2'b00} : {reg_op1[31:2], 2'b00};
 
-	assign mem_rdata_latched_noshuffle = (mem_xfer || LATCHED_MEM_RDATA) ? mem_rdata : mem_rdata_q;
+	assign mem_rdata_latched_noshuffle = (mem_xfer || LATCHED_MEM_RDATA) ? mem_rdata : mem_rdata_q; //mem_rdata goes to mem_rdata_latched_noshuffle
 
 	assign mem_rdata_latched = COMPRESSED_ISA && mem_la_use_prefetched_high_word ? {16'bx, mem_16bit_buffer} :
 			COMPRESSED_ISA && mem_la_secondword ? {mem_rdata_latched_noshuffle[15:0], mem_16bit_buffer} :
@@ -675,6 +687,7 @@ module picorv32 #(
 		end
 	end
 
+
 //State machine for memory read and write
 	always @(posedge clk) begin
 		if (!resetn || trap) begin
@@ -687,13 +700,13 @@ module picorv32 #(
 		end
 		else begin
 			if (mem_la_read || mem_la_write) begin
-				mem_addr <= mem_la_addr;
-				mem_wstrb <= mem_la_wstrb & {4{mem_la_write}};
+				mem_addr <= mem_la_addr; //
+				mem_wstrb <= mem_la_wstrb & {4{mem_la_write}}; //If mem_la_write is 1, then change mem_wstrb w.r.t mem_la_wstrb 
 			end
-			if (mem_la_write) begin
+			if (mem_la_write) begin //If mem_la_write is 1, then assign mem_wdata
 				mem_wdata <= mem_la_wdata;
 			end
-			case (mem_state)
+			case (mem_state) //
 				0: begin
 					if (mem_do_prefetch || mem_do_rinst || mem_do_rdata) begin
 						mem_valid <= !mem_la_use_prefetched_high_word;
@@ -1225,7 +1238,6 @@ module picorv32 #(
 			instr_vsetvli <= mem_rdata_q[14:12]==3'b111 && mem_rdata_q[31]==0 && mem_rdata_q[6:0] == 7'b1010111;
 			instr_vdot    <= mem_rdata_q[31:26]==6'b111001 && mem_rdata_q[14:12] == 3'b000 && mem_rdata_q[6:0]==7'b1010111;
 			instr_vadd    <= (mem_rdata_q[31:26]==6'b000000 && mem_rdata_q[14:12] == 3'b000 && mem_rdata_q[6:0]==7'b1010111);
-			// $display("instr_vadd: %b, 6'b000000: %b, 3'b000: %b, 7'b1010111: %b", instr_vadd, mem_rdata_q[31:26], mem_rdata_q[14:12],mem_rdata_q[6:0]);
 			v_enc_width <= (is_vlo || is_vst)? mem_rdata_q[14:12]:0;
 
 			instr_rdcycle  <= ((mem_rdata_q[6:0] == 7'b1110011 && mem_rdata_q[31:12] == 'b11000000000000000010) ||
@@ -1375,8 +1387,9 @@ module picorv32 #(
 	/*
 	512 bit | 8 bit |8 reg group VLMAX=(512/8)*8 
 	*/
-	wire [31:0]LMUL = (32 >>(vlmul)); //No of vector regs in a group
-
+	assign SEW  = (4*(2<<vsew));
+	// wire [31:0]LMUL = (32 >>(vlmul)); //No of vector regs in a group (Rishi anna, I think this is wrong)
+	wire [31:0]LMUL = (1 << (vlmul)); //No of vector regs in a group (2^vlmul)
 	wire [31:0]VLMAX = (512/SEW)*LMUL; //Represents the max no of elements that can be operated on with a vec instrn
 
 	wire [2:0]vsew  = vcsr_vtype[4:2]; //Encoding for the no of bits in an element (part of vtype)
@@ -1642,6 +1655,14 @@ module picorv32 #(
 	wire [511:0] vreg_op1X;
 	assign vreg_op1X = {vtempmem[0],vtempmem[1],vtempmem[2] ,vtempmem[3] ,vtempmem[4] ,vtempmem[5] ,vtempmem[6] ,vtempmem[7], vtempmem[8],vtempmem[9],vtempmem[10],vtempmem[11],vtempmem[12],vtempmem[13],vtempmem[14],vtempmem[15]};
 
+// //New lines for vector instruction
+// 	always@(posedge clk)
+// 	begin
+// 		if(pcpi_valid) //pcpi_vec_add_ready
+// 			$display("elem_n: %d, output of co-proc: %x",elem_n, pcpi_vec_add_rd);			
+// 	end
+
+
 
 	//CPU states ----> Main part in the whole code						
 	always @(posedge clk) begin
@@ -1739,7 +1760,7 @@ module picorv32 #(
 			end
 
 			cpu_state_fetch: begin
-				mem_do_rinst <= !decoder_trigger && !do_waitirq;
+				mem_do_rinst <= !decoder_trigger && !do_waitirq; //not understood
 				mem_wordsize <= 0;
 
 				current_pc = reg_next_pc;
@@ -1818,7 +1839,8 @@ module picorv32 #(
 						mem_do_rinst <= 1;
 						reg_next_pc <= current_pc + decoded_imm_j;
 						latched_branch <= 1;
-					end else begin
+					end 
+					else begin
 						mem_do_rinst <= 0;
 						mem_do_prefetch <= !instr_jalr && !instr_retirq;
 						cpu_state <= cpu_state_ld_rs1;
@@ -1837,7 +1859,7 @@ module picorv32 #(
 					(CATCH_ILLINSN || WITH_PCPI) && instr_trap: begin
 						if (WITH_PCPI) begin
 							`debug($display("LD_RS1: %2d 0x%08x", decoded_rs1, cpuregs_rs1);)
-							$display("Inside the ld_rs1 stage, vec1_data: %x",vecregs_rdata1);
+							// $display("Inside the ld_rs1 stage, vec1_data: %x",vecregs_rdata1);
 							reg_op1 <= cpuregs_rs1;
 							vreg_op1 <= vecregs_rdata1; //For vector inst
 							dbg_rs1val <= cpuregs_rs1;
@@ -1850,12 +1872,150 @@ module picorv32 #(
 								vreg_op2 <= vecregs_rdata2; //For vector inst
 								dbg_rs2val <= cpuregs_rs2;
 								dbg_rs2val_valid <= 1;
+
+								//havetochange
+								//If it is a vector instrn, then divide it into pieces and send to the co-processor
+								if((instr_vadd || instr_vdot) && (pcpi_valid == 1)) begin
+									// $display("elem_n: %d, output of co-proc: %x",pcpi_elem_n, pcpi_vec_add_rd);		
+									pcpi_elem_n <= elem_n; //No of elements executed in pcpi is elem_n*BUS_WIDTH/SEW
+									//VLMAX*SEW/VEC_BUS_WIDTH because we are sending VEC_BUS_WIDTH/SEW elements every time and there are VLMAX elements in total
+									if(elem_n < ((VLMAX*SEW)/VEC_BUS_WIDTH)) begin 
+										case(elem_n)
+											0:  begin 
+													vreg_pcpi_op1 <= vreg_op1[1*VEC_BUS_WIDTH-1: 0*VEC_BUS_WIDTH];
+													vreg_pcpi_op2 <= vreg_op2[1*VEC_BUS_WIDTH-1: 0*VEC_BUS_WIDTH];
+												end						
+											1:	begin 
+													vreg_pcpi_op1 <= vreg_op1[2*VEC_BUS_WIDTH-1: 1*VEC_BUS_WIDTH];
+													vreg_pcpi_op2 <= vreg_op2[2*VEC_BUS_WIDTH-1: 1*VEC_BUS_WIDTH];
+												end
+											2:	begin 
+													vreg_pcpi_op1 <= vreg_op1[3*VEC_BUS_WIDTH-1: 2*VEC_BUS_WIDTH];
+													vreg_pcpi_op2 <= vreg_op2[3*VEC_BUS_WIDTH-1: 2*VEC_BUS_WIDTH];
+												end
+											3:	begin 
+													vreg_pcpi_op1 <= vreg_op1[4*VEC_BUS_WIDTH-1: 3*VEC_BUS_WIDTH];
+													vreg_pcpi_op2 <= vreg_op2[4*VEC_BUS_WIDTH-1: 3*VEC_BUS_WIDTH];
+												end
+											4:	begin 
+													vreg_pcpi_op1 <= vreg_op1[5*VEC_BUS_WIDTH-1: 4*VEC_BUS_WIDTH];
+													vreg_pcpi_op2 <= vreg_op2[5*VEC_BUS_WIDTH-1: 4*VEC_BUS_WIDTH];
+												end
+											5:	begin 
+													vreg_pcpi_op1 <= vreg_op1[6*VEC_BUS_WIDTH-1: 5*VEC_BUS_WIDTH];
+													vreg_pcpi_op2 <= vreg_op2[6*VEC_BUS_WIDTH-1: 5*VEC_BUS_WIDTH];
+												end
+											6:	begin 
+													vreg_pcpi_op1 <= vreg_op1[7*VEC_BUS_WIDTH-1: 6*VEC_BUS_WIDTH];
+													vreg_pcpi_op2 <= vreg_op2[7*VEC_BUS_WIDTH-1: 6*VEC_BUS_WIDTH];
+												end
+											7:	begin 
+													vreg_pcpi_op1 <= vreg_op1[8*VEC_BUS_WIDTH-1: 7*VEC_BUS_WIDTH];
+													vreg_pcpi_op2 <= vreg_op2[8*VEC_BUS_WIDTH-1: 7*VEC_BUS_WIDTH];
+												end
+											8:	begin 
+													vreg_pcpi_op1 <= vreg_op1[9*VEC_BUS_WIDTH-1: 8*VEC_BUS_WIDTH];
+													vreg_pcpi_op2 <= vreg_op2[9*VEC_BUS_WIDTH-1: 8*VEC_BUS_WIDTH];
+												end
+											9:	begin 
+													vreg_pcpi_op1 <= vreg_op1[10*VEC_BUS_WIDTH-1: 9*VEC_BUS_WIDTH];
+													vreg_pcpi_op2 <= vreg_op2[10*VEC_BUS_WIDTH-1: 9*VEC_BUS_WIDTH];
+												end
+											10:	begin 
+													vreg_pcpi_op1 <= vreg_op1[11*VEC_BUS_WIDTH-1: 10*VEC_BUS_WIDTH];
+													vreg_pcpi_op2 <= vreg_op2[11*VEC_BUS_WIDTH-1: 10*VEC_BUS_WIDTH];
+												end
+											11:	begin 
+													vreg_pcpi_op1 <= vreg_op1[12*VEC_BUS_WIDTH-1: 11*VEC_BUS_WIDTH];
+													vreg_pcpi_op2 <= vreg_op2[12*VEC_BUS_WIDTH-1: 11*VEC_BUS_WIDTH];
+												end
+											12:	begin 
+													vreg_pcpi_op1 <= vreg_op1[13*VEC_BUS_WIDTH-1: 12*VEC_BUS_WIDTH];
+													vreg_pcpi_op2 <= vreg_op2[13*VEC_BUS_WIDTH-1: 12*VEC_BUS_WIDTH];
+												end
+											13:	begin 
+													vreg_pcpi_op1 <= vreg_op1[14*VEC_BUS_WIDTH-1: 13*VEC_BUS_WIDTH];
+													vreg_pcpi_op2 <= vreg_op2[14*VEC_BUS_WIDTH-1: 13*VEC_BUS_WIDTH];
+												end
+											14:	begin 
+													vreg_pcpi_op1 <= vreg_op1[15*VEC_BUS_WIDTH-1: 14*VEC_BUS_WIDTH];
+													vreg_pcpi_op2 <= vreg_op2[15*VEC_BUS_WIDTH-1: 14*VEC_BUS_WIDTH];
+												end
+											15:	begin 
+													vreg_pcpi_op1 <= vreg_op1[16*VEC_BUS_WIDTH-1: 15*VEC_BUS_WIDTH];
+													vreg_pcpi_op2 <= vreg_op2[16*VEC_BUS_WIDTH-1: 15*VEC_BUS_WIDTH];
+												end
+											default: begin 
+														vreg_pcpi_op1 <= 0;
+														vreg_pcpi_op2 <= 0;
+													end
+										endcase
+										elem_n <= elem_n +1;
+										// $display("Inside cpu_ld_rs1: elem_n = %d, VLMAX: %d",elem_n, VLMAX);
+									end
+									else begin
+										elem_n <= 0;										
+									end
+								end
+
+								//To concatenate the output of if it is ready
+								if(pcpi_vec_add_ready && instr_vadd) begin  
+									// $display("elem_n inside the ready condition: %d, output of co-proc: %x",pcpi_elem_n, pcpi_vec_add_rd);
+									case(pcpi_elem_n)
+										1: vec_add_result[1*VEC_BUS_WIDTH-1: 0*VEC_BUS_WIDTH] = pcpi_vec_add_rd;
+										2: vec_add_result[2*VEC_BUS_WIDTH-1: 1*VEC_BUS_WIDTH] = pcpi_vec_add_rd;
+										3: vec_add_result[3*VEC_BUS_WIDTH-1: 2*VEC_BUS_WIDTH] = pcpi_vec_add_rd;
+										4: vec_add_result[4*VEC_BUS_WIDTH-1: 3*VEC_BUS_WIDTH] = pcpi_vec_add_rd;
+										5: vec_add_result[5*VEC_BUS_WIDTH-1: 4*VEC_BUS_WIDTH] = pcpi_vec_add_rd;
+										6: vec_add_result[6*VEC_BUS_WIDTH-1: 5*VEC_BUS_WIDTH] = pcpi_vec_add_rd;
+										7: vec_add_result[7*VEC_BUS_WIDTH-1: 6*VEC_BUS_WIDTH] = pcpi_vec_add_rd;
+										8: vec_add_result[8*VEC_BUS_WIDTH-1: 7*VEC_BUS_WIDTH] = pcpi_vec_add_rd;
+										9: vec_add_result[9*VEC_BUS_WIDTH-1: 8*VEC_BUS_WIDTH] = pcpi_vec_add_rd;
+										10: vec_add_result[10*VEC_BUS_WIDTH-1: 9*VEC_BUS_WIDTH] = pcpi_vec_add_rd;
+										11: vec_add_result[11*VEC_BUS_WIDTH-1: 10*VEC_BUS_WIDTH] = pcpi_vec_add_rd;
+										12: vec_add_result[12*VEC_BUS_WIDTH-1: 11*VEC_BUS_WIDTH] = pcpi_vec_add_rd;
+										13: vec_add_result[13*VEC_BUS_WIDTH-1: 12*VEC_BUS_WIDTH] = pcpi_vec_add_rd;
+										14: vec_add_result[14*VEC_BUS_WIDTH-1: 13*VEC_BUS_WIDTH] = pcpi_vec_add_rd;
+										15: vec_add_result[15*VEC_BUS_WIDTH-1: 14*VEC_BUS_WIDTH] = pcpi_vec_add_rd;
+										16: vec_add_result[16*VEC_BUS_WIDTH-1: 15*VEC_BUS_WIDTH] = pcpi_vec_add_rd;
+										default: vec_add_result <= vec_add_result;
+									endcase
+								end
+								//To concatenate the output of if it is ready
+								if(pcpi_vec_dot_ready && instr_vdot) begin  
+									// $display("elem_n inside the ready condition: %d, output of co-proc: %x",pcpi_elem_n, pcpi_vec_dot_rd);
+									case(pcpi_elem_n)
+										1: vec_dot_result[1*VEC_BUS_WIDTH-1: 0*VEC_BUS_WIDTH] = pcpi_vec_dot_rd;
+										2: vec_dot_result[2*VEC_BUS_WIDTH-1: 1*VEC_BUS_WIDTH] = pcpi_vec_dot_rd;
+										3: vec_dot_result[3*VEC_BUS_WIDTH-1: 2*VEC_BUS_WIDTH] = pcpi_vec_dot_rd;
+										4: vec_dot_result[4*VEC_BUS_WIDTH-1: 3*VEC_BUS_WIDTH] = pcpi_vec_dot_rd;
+										5: vec_dot_result[5*VEC_BUS_WIDTH-1: 4*VEC_BUS_WIDTH] = pcpi_vec_dot_rd;
+										6: vec_dot_result[6*VEC_BUS_WIDTH-1: 5*VEC_BUS_WIDTH] = pcpi_vec_dot_rd;
+										7: vec_dot_result[7*VEC_BUS_WIDTH-1: 6*VEC_BUS_WIDTH] = pcpi_vec_dot_rd;
+										8: vec_dot_result[8*VEC_BUS_WIDTH-1: 7*VEC_BUS_WIDTH] = pcpi_vec_dot_rd;
+										9: vec_dot_result[9*VEC_BUS_WIDTH-1: 8*VEC_BUS_WIDTH] = pcpi_vec_dot_rd;
+										10: vec_dot_result[10*VEC_BUS_WIDTH-1: 9*VEC_BUS_WIDTH] = pcpi_vec_dot_rd;
+										11: vec_dot_result[11*VEC_BUS_WIDTH-1: 10*VEC_BUS_WIDTH] = pcpi_vec_dot_rd;
+										12: vec_dot_result[12*VEC_BUS_WIDTH-1: 11*VEC_BUS_WIDTH] = pcpi_vec_dot_rd;
+										13: vec_dot_result[13*VEC_BUS_WIDTH-1: 12*VEC_BUS_WIDTH] = pcpi_vec_dot_rd;
+										14: vec_dot_result[14*VEC_BUS_WIDTH-1: 13*VEC_BUS_WIDTH] = pcpi_vec_dot_rd;
+										15: vec_dot_result[15*VEC_BUS_WIDTH-1: 14*VEC_BUS_WIDTH] = pcpi_vec_dot_rd;
+										16: vec_dot_result[16*VEC_BUS_WIDTH-1: 15*VEC_BUS_WIDTH] = pcpi_vec_dot_rd;
+										default: vec_dot_result <= vec_dot_result;
+									endcase
+								end								
+
+								//If all the elements have been executed, then change the state to cpu_fetch
 								if (pcpi_int_ready) begin
 									mem_do_rinst <= 1;
 									pcpi_valid <= 0;
 									reg_out <= pcpi_int_rd;
 									latched_store <= pcpi_int_wr;
 									cpu_state <= cpu_state_fetch;
+									//Newly added for vector instrns
+									latched_vstore <= 1; 
+									latched_branch <= 0;  //Not a branch instruction
+									latched_stalu  <= 1; //To notify that alu data should be stored in rd
 								end 
 								else if (CATCH_ILLINSN && (pcpi_timeout || instr_ecall_ebreak)) begin
 									pcpi_valid <= 0;
@@ -1901,7 +2061,7 @@ module picorv32 #(
 						if (TWO_CYCLE_ALU)
 							alu_wait <= 1;
 						else
-							mem_do_rinst <= mem_do_prefetch;
+							mem_do_rinst <= mem_do_prefetch; //not understood
 						cpu_state <= cpu_state_exec;
 					end
 					ENABLE_IRQ && ENABLE_IRQ_QREGS && instr_getq: begin
@@ -1975,29 +2135,19 @@ module picorv32 #(
 						if (TWO_CYCLE_ALU)
 							alu_wait <= 1;
 						else
-							mem_do_rinst <= mem_do_prefetch;
+							mem_do_rinst <= mem_do_prefetch;  //not understood
 						cpu_state <= cpu_state_exec;
 					end
-					//Newly added lines for vector instructions written by rishi anna, not needed for pcpi instrns
-					
-					// (instr_vadd || instr_vdot): begin
-					// 	$display("Inside decode stage of vector add");
-					// 	vecregs_waddr = decoded_rd;
-		 			// 	vecregs_raddr1 = decoded_rs1;
-		 			// 	vecregs_raddr2 = decoded_rs2;
-					// 	mem_do_rinst <= mem_do_prefetch;
-					// 	cpu_state <= cpu_state_exec;						
-					// end
 					(instr_vsetvli || instr_vsetvl): begin
 						vcsr_vl <= (decoded_rs1!=5'b00000)? cpuregs_rs1:vcsr_vl;
 						vcsr_vtype <=(instr_vsetvl)?cpuregs_rs2:decoded_imm;
-						mem_do_rinst <= mem_do_prefetch;
+						mem_do_rinst <= mem_do_prefetch;   //not understood
 						cpu_state <= cpu_state_exec;
 					end
 					instr_vload && !instr_trap: begin
 						reg_op1 <= cpuregs_rs1-4;
 						cpu_state <= cpu_state_ldmem;
-						mem_do_rinst <= mem_do_prefetch;
+						mem_do_rinst <= mem_do_prefetch;  //not understood
 						vecldstrcnt <= 16;//512/32
 						vecreadcnt <=0;
 						is_vls <= 1;
@@ -2046,7 +2196,7 @@ module picorv32 #(
 										alu_wait_2 <= TWO_CYCLE_ALU && (TWO_CYCLE_COMPARE && is_beq_bne_blt_bge_bltu_bgeu);
 										alu_wait <= 1;
 									end else
-										mem_do_rinst <= mem_do_prefetch;
+										mem_do_rinst <= mem_do_prefetch; //not understood
 									cpu_state <= cpu_state_exec;
 								end
 							endcase
@@ -2069,12 +2219,148 @@ module picorv32 #(
 				case (1'b1)
 					WITH_PCPI && instr_trap: begin
 						pcpi_valid <= 1;
+						//havetochange
+						//If it is a vector instrn, then divide it into pieces and send to the co-processor
+						if((instr_vadd || instr_vdot) && (pcpi_valid == 1)) begin
+							// $display("elem_n: %d, output of co-proc: %x",pcpi_elem_n, pcpi_vec_add_rd);		
+							pcpi_elem_n <= elem_n; //No of elements executed in pcpi is elem_n*BUS_WIDTH/SEW
+							//VLMAX*SEW/VEC_BUS_WIDTH because we are sending VEC_BUS_WIDTH/SEW elements every time and there are VLMAX elements in total
+							if(elem_n < ((VLMAX*SEW)/VEC_BUS_WIDTH)) begin 
+								case(elem_n)
+									0:  begin 
+											vreg_pcpi_op1 <= vreg_op1[1*VEC_BUS_WIDTH-1: 0*VEC_BUS_WIDTH];
+											vreg_pcpi_op2 <= vreg_op2[1*VEC_BUS_WIDTH-1: 0*VEC_BUS_WIDTH];
+										end						
+									1:	begin 
+											vreg_pcpi_op1 <= vreg_op1[2*VEC_BUS_WIDTH-1: 1*VEC_BUS_WIDTH];
+											vreg_pcpi_op2 <= vreg_op2[2*VEC_BUS_WIDTH-1: 1*VEC_BUS_WIDTH];
+										end
+									2:	begin 
+											vreg_pcpi_op1 <= vreg_op1[3*VEC_BUS_WIDTH-1: 2*VEC_BUS_WIDTH];
+											vreg_pcpi_op2 <= vreg_op2[3*VEC_BUS_WIDTH-1: 2*VEC_BUS_WIDTH];
+										end
+									3:	begin 
+											vreg_pcpi_op1 <= vreg_op1[4*VEC_BUS_WIDTH-1: 3*VEC_BUS_WIDTH];
+											vreg_pcpi_op2 <= vreg_op2[4*VEC_BUS_WIDTH-1: 3*VEC_BUS_WIDTH];
+										end
+									4:	begin 
+											vreg_pcpi_op1 <= vreg_op1[5*VEC_BUS_WIDTH-1: 4*VEC_BUS_WIDTH];
+											vreg_pcpi_op2 <= vreg_op2[5*VEC_BUS_WIDTH-1: 4*VEC_BUS_WIDTH];
+										end
+									5:	begin 
+											vreg_pcpi_op1 <= vreg_op1[6*VEC_BUS_WIDTH-1: 5*VEC_BUS_WIDTH];
+											vreg_pcpi_op2 <= vreg_op2[6*VEC_BUS_WIDTH-1: 5*VEC_BUS_WIDTH];
+										end
+									6:	begin 
+											vreg_pcpi_op1 <= vreg_op1[7*VEC_BUS_WIDTH-1: 6*VEC_BUS_WIDTH];
+											vreg_pcpi_op2 <= vreg_op2[7*VEC_BUS_WIDTH-1: 6*VEC_BUS_WIDTH];
+										end
+									7:	begin 
+											vreg_pcpi_op1 <= vreg_op1[8*VEC_BUS_WIDTH-1: 7*VEC_BUS_WIDTH];
+											vreg_pcpi_op2 <= vreg_op2[8*VEC_BUS_WIDTH-1: 7*VEC_BUS_WIDTH];
+										end
+									8:	begin 
+											vreg_pcpi_op1 <= vreg_op1[9*VEC_BUS_WIDTH-1: 8*VEC_BUS_WIDTH];
+											vreg_pcpi_op2 <= vreg_op2[9*VEC_BUS_WIDTH-1: 8*VEC_BUS_WIDTH];
+										end
+									9:	begin 
+											vreg_pcpi_op1 <= vreg_op1[10*VEC_BUS_WIDTH-1: 9*VEC_BUS_WIDTH];
+											vreg_pcpi_op2 <= vreg_op2[10*VEC_BUS_WIDTH-1: 9*VEC_BUS_WIDTH];
+										end
+									10:	begin 
+											vreg_pcpi_op1 <= vreg_op1[11*VEC_BUS_WIDTH-1: 10*VEC_BUS_WIDTH];
+											vreg_pcpi_op2 <= vreg_op2[11*VEC_BUS_WIDTH-1: 10*VEC_BUS_WIDTH];
+										end
+									11:	begin 
+											vreg_pcpi_op1 <= vreg_op1[12*VEC_BUS_WIDTH-1: 11*VEC_BUS_WIDTH];
+											vreg_pcpi_op2 <= vreg_op2[12*VEC_BUS_WIDTH-1: 11*VEC_BUS_WIDTH];
+										end
+									12:	begin 
+											vreg_pcpi_op1 <= vreg_op1[13*VEC_BUS_WIDTH-1: 12*VEC_BUS_WIDTH];
+											vreg_pcpi_op2 <= vreg_op2[13*VEC_BUS_WIDTH-1: 12*VEC_BUS_WIDTH];
+										end
+									13:	begin 
+											vreg_pcpi_op1 <= vreg_op1[14*VEC_BUS_WIDTH-1: 13*VEC_BUS_WIDTH];
+											vreg_pcpi_op2 <= vreg_op2[14*VEC_BUS_WIDTH-1: 13*VEC_BUS_WIDTH];
+										end
+									14:	begin 
+											vreg_pcpi_op1 <= vreg_op1[15*VEC_BUS_WIDTH-1: 14*VEC_BUS_WIDTH];
+											vreg_pcpi_op2 <= vreg_op2[15*VEC_BUS_WIDTH-1: 14*VEC_BUS_WIDTH];
+										end
+									15:	begin 
+											vreg_pcpi_op1 <= vreg_op1[16*VEC_BUS_WIDTH-1: 15*VEC_BUS_WIDTH];
+											vreg_pcpi_op2 <= vreg_op2[16*VEC_BUS_WIDTH-1: 15*VEC_BUS_WIDTH];
+										end
+									default: begin 
+												vreg_pcpi_op1 <= 0;
+												vreg_pcpi_op2 <= 0;
+											end
+								endcase
+								elem_n <= elem_n +1;
+								// $display("Inside cpu_ld_rs1: elem_n = %d, VLMAX: %d",elem_n, VLMAX);
+							end
+							else begin
+								elem_n <= 0;										
+							end
+						end
+
+						//To concatenate the output of if it is ready
+						if(pcpi_vec_add_ready && instr_vadd) begin  
+							// $display("elem_n inside the ready condition: %d, output of co-proc: %x",pcpi_elem_n, pcpi_vec_add_rd);
+							case(pcpi_elem_n)
+								1: vec_add_result[1*VEC_BUS_WIDTH-1: 0*VEC_BUS_WIDTH] = pcpi_vec_add_rd;
+								2: vec_add_result[2*VEC_BUS_WIDTH-1: 1*VEC_BUS_WIDTH] = pcpi_vec_add_rd;
+								3: vec_add_result[3*VEC_BUS_WIDTH-1: 2*VEC_BUS_WIDTH] = pcpi_vec_add_rd;
+								4: vec_add_result[4*VEC_BUS_WIDTH-1: 3*VEC_BUS_WIDTH] = pcpi_vec_add_rd;
+								5: vec_add_result[5*VEC_BUS_WIDTH-1: 4*VEC_BUS_WIDTH] = pcpi_vec_add_rd;
+								6: vec_add_result[6*VEC_BUS_WIDTH-1: 5*VEC_BUS_WIDTH] = pcpi_vec_add_rd;
+								7: vec_add_result[7*VEC_BUS_WIDTH-1: 6*VEC_BUS_WIDTH] = pcpi_vec_add_rd;
+								8: vec_add_result[8*VEC_BUS_WIDTH-1: 7*VEC_BUS_WIDTH] = pcpi_vec_add_rd;
+								9: vec_add_result[9*VEC_BUS_WIDTH-1: 8*VEC_BUS_WIDTH] = pcpi_vec_add_rd;
+								10: vec_add_result[10*VEC_BUS_WIDTH-1: 9*VEC_BUS_WIDTH] = pcpi_vec_add_rd;
+								11: vec_add_result[11*VEC_BUS_WIDTH-1: 10*VEC_BUS_WIDTH] = pcpi_vec_add_rd;
+								12: vec_add_result[12*VEC_BUS_WIDTH-1: 11*VEC_BUS_WIDTH] = pcpi_vec_add_rd;
+								13: vec_add_result[13*VEC_BUS_WIDTH-1: 12*VEC_BUS_WIDTH] = pcpi_vec_add_rd;
+								14: vec_add_result[14*VEC_BUS_WIDTH-1: 13*VEC_BUS_WIDTH] = pcpi_vec_add_rd;
+								15: vec_add_result[15*VEC_BUS_WIDTH-1: 14*VEC_BUS_WIDTH] = pcpi_vec_add_rd;
+								16: vec_add_result[16*VEC_BUS_WIDTH-1: 15*VEC_BUS_WIDTH] = pcpi_vec_add_rd;
+								default: vec_add_result <= vec_add_result;
+							endcase
+						end
+						//To concatenate the output of if it is ready
+						if(pcpi_vec_dot_ready && instr_vdot) begin  
+							// $display("elem_n inside the ready condition: %d, output of co-proc: %x",pcpi_elem_n, pcpi_vec_dot_rd);
+							case(pcpi_elem_n)
+								1: vec_dot_result[1*VEC_BUS_WIDTH-1: 0*VEC_BUS_WIDTH] = pcpi_vec_dot_rd;
+								2: vec_dot_result[2*VEC_BUS_WIDTH-1: 1*VEC_BUS_WIDTH] = pcpi_vec_dot_rd;
+								3: vec_dot_result[3*VEC_BUS_WIDTH-1: 2*VEC_BUS_WIDTH] = pcpi_vec_dot_rd;
+								4: vec_dot_result[4*VEC_BUS_WIDTH-1: 3*VEC_BUS_WIDTH] = pcpi_vec_dot_rd;
+								5: vec_dot_result[5*VEC_BUS_WIDTH-1: 4*VEC_BUS_WIDTH] = pcpi_vec_dot_rd;
+								6: vec_dot_result[6*VEC_BUS_WIDTH-1: 5*VEC_BUS_WIDTH] = pcpi_vec_dot_rd;
+								7: vec_dot_result[7*VEC_BUS_WIDTH-1: 6*VEC_BUS_WIDTH] = pcpi_vec_dot_rd;
+								8: vec_dot_result[8*VEC_BUS_WIDTH-1: 7*VEC_BUS_WIDTH] = pcpi_vec_dot_rd;
+								9: vec_dot_result[9*VEC_BUS_WIDTH-1: 8*VEC_BUS_WIDTH] = pcpi_vec_dot_rd;
+								10: vec_dot_result[10*VEC_BUS_WIDTH-1: 9*VEC_BUS_WIDTH] = pcpi_vec_dot_rd;
+								11: vec_dot_result[11*VEC_BUS_WIDTH-1: 10*VEC_BUS_WIDTH] = pcpi_vec_dot_rd;
+								12: vec_dot_result[12*VEC_BUS_WIDTH-1: 11*VEC_BUS_WIDTH] = pcpi_vec_dot_rd;
+								13: vec_dot_result[13*VEC_BUS_WIDTH-1: 12*VEC_BUS_WIDTH] = pcpi_vec_dot_rd;
+								14: vec_dot_result[14*VEC_BUS_WIDTH-1: 13*VEC_BUS_WIDTH] = pcpi_vec_dot_rd;
+								15: vec_dot_result[15*VEC_BUS_WIDTH-1: 14*VEC_BUS_WIDTH] = pcpi_vec_dot_rd;
+								16: vec_dot_result[16*VEC_BUS_WIDTH-1: 15*VEC_BUS_WIDTH] = pcpi_vec_dot_rd;
+								default: vec_dot_result <= vec_dot_result;
+							endcase
+						end								
+
 						if (pcpi_int_ready) begin
 							mem_do_rinst <= 1;
 							pcpi_valid <= 0;
 							reg_out <= pcpi_int_rd;
 							latched_store <= pcpi_int_wr;
 							cpu_state <= cpu_state_fetch;
+							//Newly added for vector instrns
+							latched_vstore <= 1; 
+							latched_branch <= 0;  //Not a branch instruction
+							latched_stalu  <= 1; //To notify that alu data should be stored in rd
 						end else
 						if (CATCH_ILLINSN && (pcpi_timeout || instr_ecall_ebreak)) begin
 							pcpi_valid <= 0;
@@ -2098,7 +2384,7 @@ module picorv32 #(
 							alu_wait_2 <= TWO_CYCLE_ALU && (TWO_CYCLE_COMPARE && is_beq_bne_blt_bge_bltu_bgeu);
 							alu_wait <= 1;
 						end else
-							mem_do_rinst <= mem_do_prefetch;
+							mem_do_rinst <= mem_do_prefetch; //not understood
 						cpu_state <= cpu_state_exec;
 					end
 				endcase
@@ -2107,10 +2393,10 @@ module picorv32 #(
 			cpu_state_exec: begin
 				reg_out <= reg_pc + decoded_imm;
 				if ((TWO_CYCLE_ALU || TWO_CYCLE_COMPARE) && (alu_wait || alu_wait_2)) begin
-					mem_do_rinst <= mem_do_prefetch && !alu_wait_2;
+					mem_do_rinst <= mem_do_prefetch && !alu_wait_2;  //not understood
 					alu_wait <= alu_wait_2;
-				end else
-				if (is_beq_bne_blt_bge_bltu_bgeu) begin
+				end 
+				else if (is_beq_bne_blt_bge_bltu_bgeu) begin
 					latched_rd <= 0;
 					latched_store <= TWO_CYCLE_COMPARE ? alu_out_0_q : alu_out_0;
 					latched_branch <= TWO_CYCLE_COMPARE ? alu_out_0_q : alu_out_0;
@@ -2119,57 +2405,6 @@ module picorv32 #(
 					if (TWO_CYCLE_COMPARE ? alu_out_0_q : alu_out_0) begin
 						decoder_trigger <= 0;
 						set_mem_do_rinst = 1;
-					end
-				end
-				//havetochange
-				else if(instr_vadd || instr_vdot) begin
-					$display("Inside cpu_exec: elem_n = %d",elem_n);
-					if(elem_n < (VLMAX/8)) begin //VLMAX/8 because we are sending 8 elements every time
-						case(elem_n)
-							0:  begin 
-									vreg_pcpi_op1 <= vreg_op1[1*64-1: 0*64];
-									vreg_pcpi_op2 <= vreg_op2[1*64-1: 0*64];
-								end						
-							1:	begin 
-									vreg_pcpi_op1 <= vreg_op1[2*64-1: 1*64];
-									vreg_pcpi_op2 <= vreg_op2[2*64-1: 1*64];
-								end
-							2:	begin 
-									vreg_pcpi_op1 <= vreg_op1[3*64-1: 2*64];
-									vreg_pcpi_op2 <= vreg_op2[3*64-1: 2*64];
-								end
-							3:	begin 
-									vreg_pcpi_op1 <= vreg_op1[4*64-1: 3*64];
-									vreg_pcpi_op2 <= vreg_op2[4*64-1: 3*64];
-								end
-							4:	begin 
-									vreg_pcpi_op1 <= vreg_op1[5*64-1: 4*64];
-									vreg_pcpi_op2 <= vreg_op2[5*64-1: 4*64];
-								end
-							5:	begin 
-									vreg_pcpi_op1 <= vreg_op1[6*64-1: 5*64];
-									vreg_pcpi_op2 <= vreg_op2[6*64-1: 5*64];
-								end
-							6:	begin 
-									vreg_pcpi_op1 <= vreg_op1[7*64-1: 6*64];
-									vreg_pcpi_op2 <= vreg_op2[7*64-1: 6*64];
-								end
-							7:	begin 
-									vreg_pcpi_op1 <= vreg_op1[8*64-1: 7*64];
-									vreg_pcpi_op2 <= vreg_op2[8*64-1: 7*64];
-								end
-							default: begin 
-										vreg_pcpi_op1 <= 64'b0;
-										vreg_pcpi_op2 <= 64'b0;
-									end
-						endcase
-						elem_n <= elem_n +1;
-					end
-					else begin
-						latched_vstore<=1;
-						latched_branch<=0;
-						cpu_state <= cpu_state_fetch;
-						latched_stalu <= 1; //To notify that alu data should be stored in rd
 					end
 				end
 				else begin
@@ -2184,7 +2419,7 @@ module picorv32 #(
 				latched_store <= 1;
 				if (reg_sh == 0) begin
 					reg_out <= reg_op1;
-					mem_do_rinst <= mem_do_prefetch;
+					mem_do_rinst <= mem_do_prefetch; //not understood
 					cpu_state <= cpu_state_fetch;
 				end else if (TWO_STAGE_SHIFT && reg_sh >= 4) begin
 					(* parallel_case, full_case *)
@@ -2980,53 +3215,89 @@ endmodule
 /***************************************************************
  * picorv32_pcpi_vecAdd: A PCPI core that implements the vector add instructions
  ***************************************************************/
-module picorv32_pcpi_vecadd (
+module picorv32_pcpi_vecadd #(
+	parameter [7:0] BUS_WIDTH = 8'b01000000
+	) (
 	input clk, resetn,
 	input pcpi_valid,
 	input 	    [7:0]   elem_n, //newly added to know the number of elements
 	input 		[31:0] 	SEW,    //Sending SEW to co-processor 
 	input       [31:0]  pcpi_insn,
-	input       [63:0]  pcpi_vecrs1, //64 bits i.e 8 elements if SEW is 8
-	input       [63:0]  pcpi_vecrs2,
+	input       [BUS_WIDTH-1:0]  pcpi_vecrs1, //64 bits i.e 8 elements if SEW is 8
+	input       [BUS_WIDTH-1:0]  pcpi_vecrs2,
 	output reg          pcpi_wr,
-	output reg  [63:0]  pcpi_rd,
+	output reg  [BUS_WIDTH-1:0]  pcpi_rd,
 	output reg     	    pcpi_wait,
 	output reg 	        pcpi_ready,
 	output reg 			vec_res_ready //Indicates that all the elements have been executed
 );
-	localparam vlen = 32'h00000080;
-	localparam no_elem = 8'b00001000; //8 elements everytime
+	localparam vlen = 32'h00000200;   //Vle is 512 bits
+	// localparam no_elem = BUS_WIDTH/SEW; //8 elements everytime
 	//pcpi_insn[14:12] ---> Encodes the operand type 
 	//pcpi_insn[31:26] ---> Encodes the operation
 	//pcpi_insn[6:0]  ----> Notifies that it is an arithmetic operation
 	wire pcpi_insn_valid = (pcpi_valid && pcpi_insn[31:26]== 6'b000000 && pcpi_insn[14:12] == 3'b000 && pcpi_insn[6:0]==7'b1010111);
 
-	// assign pcpi_wait = 0;
-
 	always@(posedge clk)
 		begin
 			if(pcpi_insn_valid) begin
-				if(elem_n*no_elem*SEW < vlen) begin
+				if(elem_n*BUS_WIDTH < vlen) begin
 					vec_res_ready <= 0;
-					pcpi_wait <= 1; //SInce the execution of vect instrn takes more than 2 clock cycles
-					// $display("Instruction inside co-processor: 0x%x, pcpi_valid: %b, elem_n: %d",pcpi_insn, pcpi_valid, elem_n);
-					// $display("rs1 data inside co-processor: 0x%x",pcpi_vecrs1);
-					// $display("rs2 data inside co-processor: 0x%x",pcpi_vecrs2);
-					//Assuming that there rae 8 ALUs in the co-processor
-					pcpi_rd[63:56] <= pcpi_vecrs1[63:56] + pcpi_vecrs2[63:56];
-					pcpi_rd[55:48] <= pcpi_vecrs1[55:48] + pcpi_vecrs2[55:48];
-					pcpi_rd[47:40] <= pcpi_vecrs1[47:40] + pcpi_vecrs2[47:40];
-					pcpi_rd[39:32] <= pcpi_vecrs1[39:32] + pcpi_vecrs2[39:32];
-					pcpi_rd[31:24] <= pcpi_vecrs1[31:24] + pcpi_vecrs2[31:24];
-					pcpi_rd[23:16] <= pcpi_vecrs1[23:16] + pcpi_vecrs2[23:16];
-					pcpi_rd[15:8]  <= pcpi_vecrs1[15:8]  + pcpi_vecrs2[15:8];
-					pcpi_rd[7:0]   <= pcpi_vecrs1[7:0]   + pcpi_vecrs2[7:0];
-					//Since the execution time is one clock cycle
-					pcpi_wr <= 1;
-					pcpi_ready <= 1;
-					// $display("Vector add result = 0x%x",pcpi_rd);
+					pcpi_wait <= 1; //Since the execution of vect instrn takes more than 2 clock cycles
+					$display("Instruction inside co-processor: 0x%x, pcpi_valid: %b, elem_n: %d",pcpi_insn, pcpi_valid, elem_n);
+					$display("rs1 data inside co-processor: 0x%x",pcpi_vecrs1);
+					$display("rs2 data inside co-processor: 0x%x",pcpi_vecrs2);
+					if(BUS_WIDTH == 8'B00100000) begin //If the bus width is 32 bits
+						//Assuming that there are 4 ALUs in the co-processor
+						pcpi_rd[31:24] <= pcpi_vecrs1[31:24] + pcpi_vecrs2[31:24];
+						pcpi_rd[23:16] <= pcpi_vecrs1[23:16] + pcpi_vecrs2[23:16];
+						pcpi_rd[15:8]  <= pcpi_vecrs1[15:8]  + pcpi_vecrs2[15:8];
+						pcpi_rd[7:0]   <= pcpi_vecrs1[7:0]   + pcpi_vecrs2[7:0];
+						//Since the execution time is one clock cycle
+						pcpi_wr <= 1;
+						pcpi_ready <= 1;
+						$display("pcpi output = 0x%x",pcpi_rd);
+					end
+					else if(BUS_WIDTH == 8'B01000000) begin //If the bus width is 64 bits
+						//Assuming that there are 8 ALUs in the co-processor
+						pcpi_rd[63:56] <= pcpi_vecrs1[63:56] + pcpi_vecrs2[63:56];
+						pcpi_rd[55:48] <= pcpi_vecrs1[55:48] + pcpi_vecrs2[55:48];
+						pcpi_rd[47:40] <= pcpi_vecrs1[47:40] + pcpi_vecrs2[47:40];
+						pcpi_rd[39:32] <= pcpi_vecrs1[39:32] + pcpi_vecrs2[39:32];
+						pcpi_rd[31:24] <= pcpi_vecrs1[31:24] + pcpi_vecrs2[31:24];
+						pcpi_rd[23:16] <= pcpi_vecrs1[23:16] + pcpi_vecrs2[23:16];
+						pcpi_rd[15:8]  <= pcpi_vecrs1[15:8]  + pcpi_vecrs2[15:8];
+						pcpi_rd[7:0]   <= pcpi_vecrs1[7:0]   + pcpi_vecrs2[7:0];
+						//Since the execution time is one clock cycle
+						pcpi_wr <= 1;
+						pcpi_ready <= 1;
+						$display("pcpi output = 0x%x",pcpi_rd);
+					end
+					else if(BUS_WIDTH == 8'B10000000) begin //If the bus width is 128 bits
+						//Assuming that there are 8 ALUs in the co-processor
+						pcpi_rd[127:120] <= pcpi_vecrs1[127:120] + pcpi_vecrs2[127:120];
+						pcpi_rd[119:112] <= pcpi_vecrs1[119:112] + pcpi_vecrs2[119:112];
+						pcpi_rd[111:104] <= pcpi_vecrs1[47:40] + pcpi_vecrs2[47:40];
+						pcpi_rd[103:96]  <= pcpi_vecrs1[103:96] + pcpi_vecrs2[103:96];
+						pcpi_rd[95:88]   <= pcpi_vecrs1[95:88] + pcpi_vecrs2[95:88];
+						pcpi_rd[87:80]   <= pcpi_vecrs1[87:80] + pcpi_vecrs2[87:80];
+						pcpi_rd[79:72]   <= pcpi_vecrs1[79:72] + pcpi_vecrs2[79:72];
+						pcpi_rd[71:64]   <= pcpi_vecrs1[71:64] + pcpi_vecrs2[71:64];
+						pcpi_rd[63:56]   <= pcpi_vecrs1[63:56] + pcpi_vecrs2[63:56];
+						pcpi_rd[55:48]   <= pcpi_vecrs1[55:48] + pcpi_vecrs2[55:48];
+						pcpi_rd[47:40]   <= pcpi_vecrs1[47:40] + pcpi_vecrs2[47:40];
+						pcpi_rd[39:32]   <= pcpi_vecrs1[39:32] + pcpi_vecrs2[39:32];
+						pcpi_rd[31:24]   <= pcpi_vecrs1[31:24] + pcpi_vecrs2[31:24];
+						pcpi_rd[23:16]   <= pcpi_vecrs1[23:16] + pcpi_vecrs2[23:16];
+						pcpi_rd[15:8]    <= pcpi_vecrs1[15:8]  + pcpi_vecrs2[15:8];
+						pcpi_rd[7:0]     <= pcpi_vecrs1[7:0]   + pcpi_vecrs2[7:0];
+						//Since the execution time is one clock cycle
+						pcpi_wr <= 1;
+						pcpi_ready <= 1;
+						$display("pcpi output = 0x%x",pcpi_rd);
+					end
 				end
-				if((elem_n+1)*no_elem*SEW == vlen) begin
+				if((elem_n)*BUS_WIDTH == vlen) begin 
 					pcpi_wait <= 0; //Making it 0 after the execution
 					vec_res_ready <= 1;
 				end
@@ -3041,48 +3312,100 @@ module picorv32_pcpi_vecadd (
 endmodule
 
 /***************************************************************
- * picorv32_pcpi_vecAdd: A PCPI core that implements the vector mul instructions
+ * picorv32_pcpi_vecdot: A PCPI core that implements the vector mul instructions
  ***************************************************************/
-// module picorv32_pcpi_vecdot (
-// 	input clk, resetn,
-// 	input pcpi_valid,
-// 	input      [31:0]  pcpi_insn,
-// 	input      [511:0] pcpi_vecrs1,
-// 	input      [511:0] pcpi_vecrs2,
-// 	output  reg        pcpi_wr,
-// 	output  reg  [511:0] pcpi_rd,
-// 	output   		   pcpi_wait,
-// 	output  reg 	   pcpi_ready
-// );
-// 	//pcpi_insn[14:12] ---> Encodes the operand type 
-// 	//pcpi_insn[31:26] ---> Encodes the operation --> 111001 for vdot
-// 	//pcpi_insn[6:0]  ----> Notifies that it is an arithmetic operation
-// 	wire pcpi_insn_valid = (pcpi_valid && pcpi_insn[31:26]== 6'b111001 && pcpi_insn[14:12] == 3'b000 && pcpi_insn[6:0]==7'b1010111);
+module picorv32_pcpi_vecdot #(
+	parameter [7:0] BUS_WIDTH = 8'b01000000
+	) (
+	input clk, resetn,
+	input pcpi_valid,
+	input 	    [7:0]   elem_n, //newly added to know the number of elements
+	input 		[31:0] 	SEW,    //Sending SEW to co-processor 
+	input      [31:0]  pcpi_insn,
+	input      [BUS_WIDTH-1:0]  pcpi_vecrs1,
+	input      [BUS_WIDTH-1:0]  pcpi_vecrs2,
+	output  reg        pcpi_wr,
+	output  reg  [BUS_WIDTH-1:0] pcpi_rd,
+	output  reg 	   pcpi_wait,
+	output  reg 	   pcpi_ready,
+	output  reg 		vec_res_ready //Indicates that all the elements have been executed
+);
+	localparam vlen = 32'h00000200;   //Vle is 512 bits
+	// localparam no_elem = 8'b00001000; //8 elements everytime
+	//pcpi_insn[14:12] ---> Encodes the operand type 
+	//pcpi_insn[31:26] ---> Encodes the operation --> 111001 for vdot
+	//pcpi_insn[6:0]  ----> Notifies that it is an arithmetic operation
+	wire pcpi_insn_valid = (pcpi_valid && pcpi_insn[31:26]== 6'b111001 && pcpi_insn[14:12] == 3'b000 && pcpi_insn[6:0]==7'b1010111);
 
-// 	assign pcpi_wait = 0;
-
-// 	always@(posedge clk)
-// 		begin
-// 			if(pcpi_insn_valid) begin
-// 			    $display("Instruction inside co-processor: 0x%x, pcpi_valid: %b",pcpi_insn, pcpi_valid);
-// 				$display("rs1 data inside co-processor: 0x%x",pcpi_vecrs1);
-// 				$display("rs2 data inside co-processor: 0x%x",pcpi_vecrs2);
-				// pcpi_rd[63:56] <= pcpi_vecrs1[63:56] * pcpi_vecrs2[53:56];
-				// pcpi_rd[55:48] <= pcpi_vecrs1[55:48] * pcpi_vecrs2[55:48];
-				// pcpi_rd[47:40] <= pcpi_vecrs1[47:40] * pcpi_vecrs2[47:40];
-				// pcpi_rd[39:32] <= pcpi_vecrs1[39:32] * pcpi_vecrs2[39:32];
-				// pcpi_rd[31:24] <= pcpi_vecrs1[31:24] * pcpi_vecrs2[31:24];
-				// pcpi_rd[23:16] <= pcpi_vecrs1[23:16] * pcpi_vecrs2[23:16];
-				// pcpi_rd[15:8]  <= pcpi_vecrs1[15:8]  * pcpi_vecrs2[15:8];
-				// pcpi_rd[7:0]   <= pcpi_vecrs1[7:0]   * pcpi_vecrs2[7:0];
-// 				$display("Vector dot product result = 0x%x",pcpi_rd);
-// 				pcpi_wr <= 1;
-// 				pcpi_ready <= 1;
-// 			end
-// 			else begin
-// 				pcpi_rd <= 512'bx;
-// 				pcpi_wr <= 0;
-// 				pcpi_ready <= 0;
-// 			end
-// 		end
-// endmodule
+	always@(posedge clk)
+		begin
+			if(pcpi_insn_valid) begin
+				if(elem_n*BUS_WIDTH < vlen) begin
+					vec_res_ready <= 0;
+					pcpi_wait <= 1; //Since the execution of vect instrn takes more than 2 clock cycles
+					$display("Instruction inside co-processor: 0x%x, pcpi_valid: %b, elem_n: %d",pcpi_insn, pcpi_valid, elem_n);
+					$display("rs1 data inside co-processor: 0x%x",pcpi_vecrs1);
+					$display("rs2 data inside co-processor: 0x%x",pcpi_vecrs2);
+					//Assuming that there are 8 ALUs in the co-processor
+					if(BUS_WIDTH == 8'B00100000) begin //If the bus width is 32 bits
+						//Assuming that there are 4 ALUs in the co-processor
+						pcpi_rd[31:24] <= pcpi_vecrs1[31:24] * pcpi_vecrs2[31:24];
+						pcpi_rd[23:16] <= pcpi_vecrs1[23:16] * pcpi_vecrs2[23:16];
+						pcpi_rd[15:8]  <= pcpi_vecrs1[15:8]  * pcpi_vecrs2[15:8];
+						pcpi_rd[7:0]   <= pcpi_vecrs1[7:0]   * pcpi_vecrs2[7:0];
+						//Since the execution time is one clock cycle
+						pcpi_wr <= 1;
+						pcpi_ready <= 1;
+						$display("pcpi output = 0x%x",pcpi_rd);
+					end
+					else if(BUS_WIDTH == 8'B01000000) begin //If the bus width is 64 bits
+						//Assuming that there are 8 ALUs in the co-processor
+						pcpi_rd[63:56] <= pcpi_vecrs1[63:56] * pcpi_vecrs2[63:56];
+						pcpi_rd[55:48] <= pcpi_vecrs1[55:48] * pcpi_vecrs2[55:48];
+						pcpi_rd[47:40] <= pcpi_vecrs1[47:40] * pcpi_vecrs2[47:40];
+						pcpi_rd[39:32] <= pcpi_vecrs1[39:32] * pcpi_vecrs2[39:32];
+						pcpi_rd[31:24] <= pcpi_vecrs1[31:24] * pcpi_vecrs2[31:24];
+						pcpi_rd[23:16] <= pcpi_vecrs1[23:16] * pcpi_vecrs2[23:16];
+						pcpi_rd[15:8]  <= pcpi_vecrs1[15:8]  * pcpi_vecrs2[15:8];
+						pcpi_rd[7:0]   <= pcpi_vecrs1[7:0]   * pcpi_vecrs2[7:0];
+						//Since the execution time is one clock cycle
+						pcpi_wr <= 1;
+						pcpi_ready <= 1;
+						$display("pcpi output = 0x%x",pcpi_rd);
+					end
+					else if(BUS_WIDTH == 8'B10000000) begin //If the bus width is 128 bits
+						//Assuming that there are 8 ALUs in the co-processor
+						pcpi_rd[127:120] <= pcpi_vecrs1[127:120] * pcpi_vecrs2[127:120];
+						pcpi_rd[119:112] <= pcpi_vecrs1[119:112] * pcpi_vecrs2[119:112];
+						pcpi_rd[111:104] <= pcpi_vecrs1[47:40]   * pcpi_vecrs2[47:40];
+						pcpi_rd[103:96]  <= pcpi_vecrs1[103:96]  * pcpi_vecrs2[103:96];
+						pcpi_rd[95:88]   <= pcpi_vecrs1[95:88] * pcpi_vecrs2[95:88];
+						pcpi_rd[87:80]   <= pcpi_vecrs1[87:80] * pcpi_vecrs2[87:80];
+						pcpi_rd[79:72]   <= pcpi_vecrs1[79:72] * pcpi_vecrs2[79:72];
+						pcpi_rd[71:64]   <= pcpi_vecrs1[71:64] * pcpi_vecrs2[71:64];
+						pcpi_rd[63:56]   <= pcpi_vecrs1[63:56] * pcpi_vecrs2[63:56];
+						pcpi_rd[55:48]   <= pcpi_vecrs1[55:48] * pcpi_vecrs2[55:48];
+						pcpi_rd[47:40]   <= pcpi_vecrs1[47:40] * pcpi_vecrs2[47:40];
+						pcpi_rd[39:32]   <= pcpi_vecrs1[39:32] * pcpi_vecrs2[39:32];
+						pcpi_rd[31:24]   <= pcpi_vecrs1[31:24] * pcpi_vecrs2[31:24];
+						pcpi_rd[23:16]   <= pcpi_vecrs1[23:16] * pcpi_vecrs2[23:16];
+						pcpi_rd[15:8]    <= pcpi_vecrs1[15:8]  * pcpi_vecrs2[15:8];
+						pcpi_rd[7:0]     <= pcpi_vecrs1[7:0]   * pcpi_vecrs2[7:0];
+						//Since the execution time is one clock cycle
+						pcpi_wr <= 1;
+						pcpi_ready <= 1;
+						$display("pcpi output = 0x%x",pcpi_rd);
+					end
+				end
+				if((elem_n)*BUS_WIDTH == vlen) begin 
+					pcpi_wait <= 0; //Making it 0 after the execution
+					vec_res_ready <= 1;
+				end		
+			end
+			else begin
+				pcpi_rd <= 512'bx;
+				pcpi_wr <= 0;
+				pcpi_ready <= 0;
+			end
+		end
+endmodule
