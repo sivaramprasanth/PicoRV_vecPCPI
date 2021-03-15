@@ -1509,7 +1509,6 @@ module picorv32 #(
 		cpuregs_wrdata = 'bx;
 		vecregs_wdata = 'bx;
 		vecregs_write = 0;
-
 		if (cpu_state == cpu_state_fetch) begin
 			(* parallel_case *)
 			case (1'b1)
