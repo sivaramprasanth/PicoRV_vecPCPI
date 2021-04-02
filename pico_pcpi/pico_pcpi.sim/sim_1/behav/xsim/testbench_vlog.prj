@@ -1,7 +1,7 @@
 # compile verilog/system verilog design source files
 verilog xil_defaultlib  \
 "../../../../../picorv32.v" \
-"../../../../../testbench_ez_vec.v" \
+"../../../../../new_testbench_vec.v" \
 
 # compile glbl module
 verilog xil_defaultlib "glbl.v"

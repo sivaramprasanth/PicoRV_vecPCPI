@@ -11,15 +11,15 @@
       </db_ref>
    </db_ref_list>
    <zoom_setting>
-      <ZoomStartTime time="0fs"></ZoomStartTime>
-      <ZoomEndTime time="7810001fs"></ZoomEndTime>
-      <Cursor1Time time="0fs"></Cursor1Time>
+      <ZoomStartTime time="313834fs"></ZoomStartTime>
+      <ZoomEndTime time="470835fs"></ZoomEndTime>
+      <Cursor1Time time="340000fs"></Cursor1Time>
    </zoom_setting>
    <column_width_setting>
-      <NameColumnWidth column_width="168"></NameColumnWidth>
+      <NameColumnWidth column_width="164"></NameColumnWidth>
       <ValueColumnWidth column_width="66"></ValueColumnWidth>
    </column_width_setting>
-   <WVObjectSize size="28" />
+   <WVObjectSize size="17" />
    <wvobject type="logic" fp_name="/testbench/clk">
       <obj_property name="ElementShortName">clk</obj_property>
       <obj_property name="ObjectShortName">clk</obj_property>
@@ -56,62 +56,6 @@
       <obj_property name="ElementShortName">mem_rdata[31:0]</obj_property>
       <obj_property name="ObjectShortName">mem_rdata[31:0]</obj_property>
    </wvobject>
-   <wvobject type="array" fp_name="/testbench/uut/vecregs_rdata1">
-      <obj_property name="ElementShortName">vecregs_rdata1[511:0]</obj_property>
-      <obj_property name="ObjectShortName">vecregs_rdata1[511:0]</obj_property>
-   </wvobject>
-   <wvobject type="array" fp_name="/testbench/uut/vecregs_rdata2">
-      <obj_property name="ElementShortName">vecregs_rdata2[511:0]</obj_property>
-      <obj_property name="ObjectShortName">vecregs_rdata2[511:0]</obj_property>
-   </wvobject>
-   <wvobject type="array" fp_name="/testbench/uut/vecregs_raddr1">
-      <obj_property name="ElementShortName">vecregs_raddr1[4:0]</obj_property>
-      <obj_property name="ObjectShortName">vecregs_raddr1[4:0]</obj_property>
-   </wvobject>
-   <wvobject type="array" fp_name="/testbench/uut/vecregs_raddr2">
-      <obj_property name="ElementShortName">vecregs_raddr2[4:0]</obj_property>
-      <obj_property name="ObjectShortName">vecregs_raddr2[4:0]</obj_property>
-   </wvobject>
-   <wvobject type="array" fp_name="/testbench/uut/vreg_op1">
-      <obj_property name="ElementShortName">vreg_op1[511:0]</obj_property>
-      <obj_property name="ObjectShortName">vreg_op1[511:0]</obj_property>
-   </wvobject>
-   <wvobject type="array" fp_name="/testbench/uut/vreg_op2">
-      <obj_property name="ElementShortName">vreg_op2[511:0]</obj_property>
-      <obj_property name="ObjectShortName">vreg_op2[511:0]</obj_property>
-   </wvobject>
-   <wvobject type="array" fp_name="/testbench/uut/vecreg_inst/waddr">
-      <obj_property name="ElementShortName">waddr[4:0]</obj_property>
-      <obj_property name="ObjectShortName">waddr[4:0]</obj_property>
-   </wvobject>
-   <wvobject type="array" fp_name="/testbench/uut/vecreg_inst/wdata">
-      <obj_property name="ElementShortName">wdata[511:0]</obj_property>
-      <obj_property name="ObjectShortName">wdata[511:0]</obj_property>
-   </wvobject>
-   <wvobject type="array" fp_name="/testbench/uut/vecreg_inst/rdata1">
-      <obj_property name="ElementShortName">rdata1[511:0]</obj_property>
-      <obj_property name="ObjectShortName">rdata1[511:0]</obj_property>
-   </wvobject>
-   <wvobject type="array" fp_name="/testbench/uut/vecreg_inst/rdata2">
-      <obj_property name="ElementShortName">rdata2[511:0]</obj_property>
-      <obj_property name="ObjectShortName">rdata2[511:0]</obj_property>
-   </wvobject>
-   <wvobject type="array" fp_name="/testbench/uut/vecreg_inst/waddr">
-      <obj_property name="ElementShortName">waddr[4:0]</obj_property>
-      <obj_property name="ObjectShortName">waddr[4:0]</obj_property>
-   </wvobject>
-   <wvobject type="array" fp_name="/testbench/uut/vecreg_inst/wdata">
-      <obj_property name="ElementShortName">wdata[511:0]</obj_property>
-      <obj_property name="ObjectShortName">wdata[511:0]</obj_property>
-   </wvobject>
-   <wvobject type="array" fp_name="/testbench/uut/vecreg_inst/rdata1">
-      <obj_property name="ElementShortName">rdata1[511:0]</obj_property>
-      <obj_property name="ObjectShortName">rdata1[511:0]</obj_property>
-   </wvobject>
-   <wvobject type="array" fp_name="/testbench/uut/vecreg_inst/rdata2">
-      <obj_property name="ElementShortName">rdata2[511:0]</obj_property>
-      <obj_property name="ObjectShortName">rdata2[511:0]</obj_property>
-   </wvobject>
    <wvobject type="logic" fp_name="/testbench/uut/pcpi_valid">
       <obj_property name="ElementShortName">pcpi_valid</obj_property>
       <obj_property name="ObjectShortName">pcpi_valid</obj_property>
@@ -120,16 +64,30 @@
       <obj_property name="ElementShortName">pcpi_int_ready</obj_property>
       <obj_property name="ObjectShortName">pcpi_int_ready</obj_property>
    </wvobject>
-   <wvobject type="logic" fp_name="/testbench/uut/ENABLE_VECADD">
-      <obj_property name="ElementShortName">ENABLE_VECADD</obj_property>
-      <obj_property name="ObjectShortName">ENABLE_VECADD</obj_property>
-   </wvobject>
    <wvobject type="logic" fp_name="/testbench/uut/pcpi_vec_ready">
       <obj_property name="ElementShortName">pcpi_vec_ready</obj_property>
       <obj_property name="ObjectShortName">pcpi_vec_ready</obj_property>
    </wvobject>
-   <wvobject type="logic" fp_name="/testbench/uut/\genblk3.pcpi_vecadd /pcpi_ready">
-      <obj_property name="ElementShortName">pcpi_ready</obj_property>
-      <obj_property name="ObjectShortName">pcpi_ready</obj_property>
+   <wvobject type="logic" fp_name="/testbench/uut/cpuregs_write">
+      <obj_property name="ElementShortName">cpuregs_write</obj_property>
+      <obj_property name="ObjectShortName">cpuregs_write</obj_property>
+   </wvobject>
+   <wvobject type="array" fp_name="/testbench/uut/cpuregs_wrdata">
+      <obj_property name="ElementShortName">cpuregs_wrdata[31:0]</obj_property>
+      <obj_property name="ObjectShortName">cpuregs_wrdata[31:0]</obj_property>
+      <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
+   </wvobject>
+   <wvobject type="array" fp_name="/testbench/uut/cpuregs_rs1">
+      <obj_property name="ElementShortName">cpuregs_rs1[31:0]</obj_property>
+      <obj_property name="ObjectShortName">cpuregs_rs1[31:0]</obj_property>
+   </wvobject>
+   <wvobject type="array" fp_name="/testbench/uut/cpuregs_rs2">
+      <obj_property name="ElementShortName">cpuregs_rs2[31:0]</obj_property>
+      <obj_property name="ObjectShortName">cpuregs_rs2[31:0]</obj_property>
+   </wvobject>
+   <wvobject type="array" fp_name="/testbench/vec_mem_rdata">
+      <obj_property name="ElementShortName">vec_mem_rdata[31:0]</obj_property>
+      <obj_property name="ObjectShortName">vec_mem_rdata[31:0]</obj_property>
+      <obj_property name="Radix">HEXRADIX</obj_property>
    </wvobject>
 </wave_config>

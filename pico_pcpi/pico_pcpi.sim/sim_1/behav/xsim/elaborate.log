@@ -4,15 +4,13 @@ Running: /home/prasanth/new_volume/Vivado/2019.2/bin/unwrapped/lnx64.o/xelab -wt
 Using 8 slave threads.
 Starting static elaboration
 Pass Through NonSizing Optimizer
-WARNING: [VRFC 10-5021] port 'vec_pcpi_rd' is not connected on this instance [/home/prasanth/Desktop/iiitb/4_year/8-sem/NR-PE/pico_vecPCPI/testbench_ez_vec.v:51]
 Completed static elaboration
 Starting simulation data flow analysis
 Completed simulation data flow analysis
 Time Resolution for simulation is 1ps
-Compiling module xil_defaultlib.picorv32_pcpi_vecadd
-Compiling module xil_defaultlib.picorv32_pcpi_vecdot
+Compiling module xil_defaultlib.picorv32(ENABLE_VEC=1'b1)
 Compiling module xil_defaultlib.vector_regs
-Compiling module xil_defaultlib.picorv32_default
+Compiling module xil_defaultlib.picorv32_pcpi_vec
 Compiling module xil_defaultlib.testbench
 Compiling module xil_defaultlib.glbl
 Built simulation snapshot testbench_behav
