@@ -1,6 +1,11 @@
 /*
  *  PicoRV32 -- A Small RISC-V (RV32I) Processor Core
+ 
  *	Implemented single co-processor for all the vect_instrns with dedicated port to coproecessor
+ *  And also added vector strided load and vdot instruction. But assumed 3 port vector regs
+ *  Executes on all the elements of vector reg irrespective of membits (vlen)
+
+
  *  Copyright (C) 2015  Clifford Wolf <clifford@clifford.at>
  *
  *  Permission to use, copy, modify, and/or distribute this software for any
