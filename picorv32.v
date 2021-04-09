@@ -1,6 +1,8 @@
 /*
  *  PicoRV32 -- A Small RISC-V (RV32I) Processor Core
- *	Implemented single co-processor for all the vect_instrns with dedicated port to coproecessor
+ *  Implemented single co-processor for all the vect_instrns with dedicated port to coproecessor
+ *  And also added vector strided load and vdot instruction. But assumed 3 port vector regs
+ *  Executes on all the elements of vector reg irrespective of membits (vlen)
  *  Copyright (C) 2015  Clifford Wolf <clifford@clifford.at>
  *
  *  Permission to use, copy, modify, and/or distribute this software for any
@@ -1178,7 +1180,8 @@ module picorv32 #(
 			instr_and   <= is_alu_reg_reg && mem_rdata_q[14:12] == 3'b111 && mem_rdata_q[31:25] == 7'b0000000;
 
 			//For vector instructions
-			instr_vload   <= ((mem_rdata_q[28:26]==3'b000) || (mem_rdata_q[28:26]==3'b110)) && mem_rdata_q[6:0] == 7'b0000111; // strided also, NF not supported
+			//zero-extended strided or zero-extended unit-siride for load (see the difference)
+			instr_vload   <= ((mem_rdata_q[28:26]==3'b000) || (mem_rdata_q[28:26]==3'b010)) && mem_rdata_q[6:0] == 7'b0000111; // strided also, NF not supported
 			instr_vstore  <= (mem_rdata_q[24:20]==5'b00000) && (mem_rdata_q[28:26]==3'b000) && mem_rdata_q[6:0] == 7'b0100111; // only unit stride supported,NF not supported 
 			instr_vsetvl  <= mem_rdata_q[14:12]==3'b111 && mem_rdata_q[31]==1 && mem_rdata_q[6:0] == 7'b1010111; 
 			instr_vsetvli <= mem_rdata_q[14:12]==3'b111 && mem_rdata_q[31]==0 && mem_rdata_q[6:0] == 7'b1010111;
@@ -1970,7 +1973,6 @@ module picorv32 #(
 					// 			vtempmem[vtempinit] = 0;
 					// 	//Updating mem_bits depending on vcsr_vl and v_enc_width(i.e instr[14:12])
 					// 	v_membits <= vcsr_vl * ((v_enc_width==3'b000)? 8:(v_enc_width==3'b101)?16:(v_enc_width==3'b110)?32:SEW); 
- 
 					// end
 					// instr_vstore && !instr_trap: begin
 					// 	//vecregs_waddr = decoded_rd;
@@ -2902,7 +2904,11 @@ endmodule
 /***************************************************************
  * picorv32_pcpi_vec: A PCPI core that implements the vector instructions
  ***************************************************************/
-module picorv32_pcpi_vec (
+module picorv32_pcpi_vec #(
+	//Bus width between ALU unit and coprocessor
+	parameter [7:0] BUS_WIDTH = 8'B00100000, //Default is 32
+	parameter [31:0] vlen = 32'h00000200 //No of bits in vector 
+)(
 	input clk, resetn,
 	input pcpi_valid,
 	input       [31:0]  pcpi_insn,
@@ -2920,13 +2926,10 @@ module picorv32_pcpi_vec (
 	output reg [31:0] mem_addr, //Given to memory by coprocessor
 	output reg [31:0] mem_wdata, //For store
 	output reg [3:0]  mem_wstrb  //For store
-
 );
 
-	localparam BUS_WIDTH = 8'B00100000;
-	localparam vlen = 32'h00000200;   //Vlen is 512 bits
-	reg [31:0] reg_op1; // = pcpi_cpurs1;
-	reg [31:0] reg_op2; // = pcpi_cpurs2;
+	reg [31:0] reg_op1; //stores the value of pcpi_cpurs1
+	reg [31:0] reg_op2; //stores the value of pcpi_cpurs2
 
 	//Memory Interface
 	reg [1:0] mem_state;
@@ -3057,7 +3060,7 @@ module picorv32_pcpi_vec (
 			decoded_vimm <= pcpi_insn[30:20];
 			//Load and store currently supports only unit stride
 			instr_vload   <= (pcpi_insn[24:20]==5'b00000) && (pcpi_insn[28:26]==3'b000) && pcpi_insn[6:0] == 7'b0000111; // NF not supported
-			instr_vload_str <= (pcpi_insn[28:26]==3'b110) && pcpi_insn[6:0] == 7'b0000111; //Strided load
+			instr_vload_str <= (pcpi_insn[28:26]==3'b010) && (pcpi_insn[14:12]==3'b111) && pcpi_insn[6:0] == 7'b0000111; //Strided load
 			instr_vstore  <= (pcpi_insn[24:20]==5'b00000) && (pcpi_insn[28:26]==3'b000) && pcpi_insn[6:0] == 7'b0100111; // only unit stride supported,NF not supported 
 			instr_vsetvl  <= (pcpi_insn[14:12]==3'b111) && (pcpi_insn[31]==1) && (pcpi_insn[6:0] == 7'b1010111); 
 			instr_vsetvli <= (pcpi_insn[14:12]==3'b111) && (pcpi_insn[31]==0) && (pcpi_insn[6:0] == 7'b1010111);
@@ -3406,7 +3409,7 @@ module picorv32_pcpi_vec (
 							end
 							else if(instr_vdot) begin
 								//Assuming that there are1 32-bit ALU in the co-processor
-								// $display("vecrd: %d", vecrd[31:0]);
+								$display("vec_rs1: %d, vec_rs2:%d, vec_rs3: %d, vecrd: %d",vecrs1,vecrs2,vecrs3,vecrd[31:0]);
 								vecrd[31:0] <= vecrs1[31:0] * vecrs2[31:0] + vecrs3[31:0];
 								// $display("vecrd: %d", vecrd[31:0]);
 							end

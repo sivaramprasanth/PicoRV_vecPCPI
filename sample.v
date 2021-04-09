@@ -1,7 +1,11 @@
 /***************************************************************
  * picorv32_pcpi_vec: A PCPI core that implements the vector instructions
  ***************************************************************/
-module picorv32_pcpi_vec (
+module picorv32_pcpi_vec #(
+	//Bus width between ALU unit and coprocessor
+	parameter [7:0] BUS_WIDTH = 8'B00100000, //Default is 32
+	parameter [31:0] vlen = 32'h00000200 //No of bits in vector 
+)(
 	input clk, resetn,
 	input pcpi_valid,
 	input       [31:0]  pcpi_insn,
@@ -19,13 +23,10 @@ module picorv32_pcpi_vec (
 	output reg [31:0] mem_addr, //Given to memory by coprocessor
 	output reg [31:0] mem_wdata, //For store
 	output reg [3:0]  mem_wstrb  //For store
-
 );
 
-	localparam BUS_WIDTH = 8'B00100000;
-	localparam vlen = 32'h00000200;   //Vlen is 512 bits
-	reg [31:0] reg_op1; // = pcpi_cpurs1;
-	reg [31:0] reg_op2; // = pcpi_cpurs2;
+	reg [31:0] reg_op1; //stores the value of pcpi_cpurs1
+	reg [31:0] reg_op2; //stores the value of pcpi_cpurs2
 
 	//Memory Interface
 	reg [1:0] mem_state;
@@ -156,7 +157,7 @@ module picorv32_pcpi_vec (
 			decoded_vimm <= pcpi_insn[30:20];
 			//Load and store currently supports only unit stride
 			instr_vload   <= (pcpi_insn[24:20]==5'b00000) && (pcpi_insn[28:26]==3'b000) && pcpi_insn[6:0] == 7'b0000111; // NF not supported
-			instr_vload_str <= (pcpi_insn[28:26]==3'b110) && pcpi_insn[6:0] == 7'b0000111; //Strided load
+			instr_vload_str <= (pcpi_insn[28:26]==3'b010) && (pcpi_insn[14:12]==3'b111) && pcpi_insn[6:0] == 7'b0000111; //Strided load
 			instr_vstore  <= (pcpi_insn[24:20]==5'b00000) && (pcpi_insn[28:26]==3'b000) && pcpi_insn[6:0] == 7'b0100111; // only unit stride supported,NF not supported 
 			instr_vsetvl  <= (pcpi_insn[14:12]==3'b111) && (pcpi_insn[31]==1) && (pcpi_insn[6:0] == 7'b1010111); 
 			instr_vsetvli <= (pcpi_insn[14:12]==3'b111) && (pcpi_insn[31]==0) && (pcpi_insn[6:0] == 7'b1010111);
@@ -192,6 +193,7 @@ module picorv32_pcpi_vec (
 	reg [7:0] elem_n;
 	reg [31:0] vecrs1;
 	reg [31:0] vecrs2;
+	reg [31:0] vecrs3; //For dit product
 	reg [31:0] vecrd;
 	reg [511:0] valu_out; //Stores the output of ALU
 
@@ -293,7 +295,6 @@ module picorv32_pcpi_vec (
 							var_vlen <= 17 - ((vcsr_vl * ((v_enc_width==3'b000)? 8:(v_enc_width==3'b101)?16:(v_enc_width==3'b110)?32:SEW)) >> 5);//right shift to divide with 32
 							vecregs_waddr = decoded_vd;
 							vecregs_raddr1 = decoded_vs1;
-							// vecregs_raddr2 = decoded_vs2; //[24:20] is for stride
 							//Updating mem_bits depending on vcsr_vl and v_enc_width(i.e instr[14:12])
 							v_membits <= vcsr_vl * ((v_enc_width==3'b000)? 8:(v_enc_width==3'b101)?16:(v_enc_width==3'b110)?32:SEW); 
 						end
@@ -321,6 +322,7 @@ module picorv32_pcpi_vec (
 							vecregs_waddr = decoded_vd;
 							vecregs_raddr1 = decoded_vs1;
 							vecregs_raddr2 = decoded_vs2;
+							vecregs_raddr3 = decoded_vd; //For dot product
 							vreg_op1 <= vecregs_rdata1;
 							vreg_op2 <= vecregs_rdata2;
 							vreg_op3 <= vecregs_rdata3; //Used for dot product
@@ -336,99 +338,103 @@ module picorv32_pcpi_vec (
 							0: begin
 									vecrs1 <= vreg_op1[1*BUS_WIDTH-1:0*BUS_WIDTH];
 									vecrs2 <= vreg_op2[1*BUS_WIDTH-1:0*BUS_WIDTH];
-									vecrd  <= vreg_op3[1*BUS_WIDTH-1:0*BUS_WIDTH];
+									vecrs3  <= vreg_op3[1*BUS_WIDTH-1:0*BUS_WIDTH];
 								end
 							1: begin
 									vecrs1 <= vreg_op1[2*BUS_WIDTH-1:1*BUS_WIDTH];
 									vecrs2 <= vreg_op2[2*BUS_WIDTH-1:1*BUS_WIDTH];
-									vecrd  <= vreg_op3[2*BUS_WIDTH-1:1*BUS_WIDTH];
+									vecrs3  <= vreg_op3[2*BUS_WIDTH-1:1*BUS_WIDTH];
 								end
 							2: begin
 									vecrs1 <= vreg_op1[3*BUS_WIDTH-1:2*BUS_WIDTH];
 									vecrs2 <= vreg_op2[3*BUS_WIDTH-1:2*BUS_WIDTH];
-									vecrd  <= vreg_op3[3*BUS_WIDTH-1:2*BUS_WIDTH];
+									vecrs3  <= vreg_op3[3*BUS_WIDTH-1:2*BUS_WIDTH];
+									// $display("vecregs_raddr3: %d, vd value: %x", vecregs_raddr3,vecrd);
+									// $display("vecregs_raddr2: %d, vs2 value: %d", vecregs_raddr2,vecrs2);
 									valu_out[1*BUS_WIDTH-1:0*BUS_WIDTH] <= vecrd;
 								end
 							3: begin
 									vecrs1 <= vreg_op1[4*BUS_WIDTH-1:3*BUS_WIDTH];
 									vecrs2 <= vreg_op2[4*BUS_WIDTH-1:3*BUS_WIDTH];
-									vecrd  <= vreg_op3[4*BUS_WIDTH-1:3*BUS_WIDTH];
+									vecrs3  <= vreg_op3[4*BUS_WIDTH-1:3*BUS_WIDTH];
 									valu_out[2*BUS_WIDTH-1:1*BUS_WIDTH] <= vecrd;								
 								end
 							4: begin
 									vecrs1 <= vreg_op1[5*BUS_WIDTH-1:4*BUS_WIDTH];
 									vecrs2 <= vreg_op2[5*BUS_WIDTH-1:4*BUS_WIDTH];
-									vecrd  <= vreg_op3[5*BUS_WIDTH-1:4*BUS_WIDTH];
+									vecrs3  <= vreg_op3[5*BUS_WIDTH-1:4*BUS_WIDTH];
 									valu_out[3*BUS_WIDTH-1:2*BUS_WIDTH] <= vecrd;	
 								end
 							5: begin
 									vecrs1 <= vreg_op1[6*BUS_WIDTH-1:5*BUS_WIDTH];
 									vecrs2 <= vreg_op2[6*BUS_WIDTH-1:5*BUS_WIDTH];
+									vecrs3 <= vreg_op3[6*BUS_WIDTH-1:5*BUS_WIDTH];
 									valu_out[4*BUS_WIDTH-1:3*BUS_WIDTH] <= vecrd;	
 								end
 							6: begin
 									vecrs1 <= vreg_op1[7*BUS_WIDTH-1:6*BUS_WIDTH];
 									vecrs2 <= vreg_op2[7*BUS_WIDTH-1:6*BUS_WIDTH];
-									vecrd  <= vreg_op3[7*BUS_WIDTH-1:6*BUS_WIDTH];
+									vecrs3  <= vreg_op3[7*BUS_WIDTH-1:6*BUS_WIDTH];
 									valu_out[5*BUS_WIDTH-1:4*BUS_WIDTH] <= vecrd;	
 								end
 							7: begin
 									vecrs1 <= vreg_op1[8*BUS_WIDTH-1:7*BUS_WIDTH];
 									vecrs2 <= vreg_op2[8*BUS_WIDTH-1:7*BUS_WIDTH];
-									vecrd  <= vreg_op3[8*BUS_WIDTH-1:7*BUS_WIDTH];
+									vecrs3  <= vreg_op3[8*BUS_WIDTH-1:7*BUS_WIDTH];
 									valu_out[6*BUS_WIDTH-1:5*BUS_WIDTH] <= vecrd;	
 								end
 							8: begin
 									vecrs1 <= vreg_op1[9*BUS_WIDTH-1:8*BUS_WIDTH];
 									vecrs2 <= vreg_op2[9*BUS_WIDTH-1:8*BUS_WIDTH];
-									vecrd  <= vreg_op3[9*BUS_WIDTH-1:8*BUS_WIDTH];
+									vecrs3  <= vreg_op3[9*BUS_WIDTH-1:8*BUS_WIDTH];
 									valu_out[7*BUS_WIDTH-1:6*BUS_WIDTH] <= vecrd;	
 								end
 							9: begin
 									vecrs1 <= vreg_op1[10*BUS_WIDTH-1:9*BUS_WIDTH];
 									vecrs2 <= vreg_op2[10*BUS_WIDTH-1:9*BUS_WIDTH];
-									vecrd  <= vreg_op3[10*BUS_WIDTH-1:9*BUS_WIDTH];
+									vecrs3  <= vreg_op3[10*BUS_WIDTH-1:9*BUS_WIDTH];
 									valu_out[8*BUS_WIDTH-1:7*BUS_WIDTH] <= vecrd;	
 								end
 							10: begin
 									vecrs1 <= vreg_op1[11*BUS_WIDTH-1:10*BUS_WIDTH];
 									vecrs2 <= vreg_op2[11*BUS_WIDTH-1:10*BUS_WIDTH];
-									vecrd  <= vreg_op3[11*BUS_WIDTH-1:10*BUS_WIDTH];
+									vecrs3  <= vreg_op3[11*BUS_WIDTH-1:10*BUS_WIDTH];
 									valu_out[9*BUS_WIDTH-1:8*BUS_WIDTH] <= vecrd;	
 								end
 							11: begin
 									vecrs1 <= vreg_op1[12*BUS_WIDTH-1:11*BUS_WIDTH];
 									vecrs2 <= vreg_op2[12*BUS_WIDTH-1:11*BUS_WIDTH];
-									vecrd  <= vreg_op3[12*BUS_WIDTH-1:11*BUS_WIDTH];
+									vecrs3  <= vreg_op3[12*BUS_WIDTH-1:11*BUS_WIDTH];
 									valu_out[10*BUS_WIDTH-1:9*BUS_WIDTH] <= vecrd;	
 								end
 							12: begin
 									vecrs1 <= vreg_op1[13*BUS_WIDTH-1:12*BUS_WIDTH];
 									vecrs2 <= vreg_op2[13*BUS_WIDTH-1:12*BUS_WIDTH];
-									vecrd  <= vreg_op3[13*BUS_WIDTH-1:12*BUS_WIDTH];
+									vecrs3  <= vreg_op3[13*BUS_WIDTH-1:12*BUS_WIDTH];
 									valu_out[11*BUS_WIDTH-1:10*BUS_WIDTH] <= vecrd;	
 								end
 							13: begin
 									vecrs1 <= vreg_op1[14*BUS_WIDTH-1:13*BUS_WIDTH];
 									vecrs2 <= vreg_op2[14*BUS_WIDTH-1:13*BUS_WIDTH];
+									vecrs3 <= vreg_op3[14*BUS_WIDTH-1:13*BUS_WIDTH];
 									valu_out[12*BUS_WIDTH-1:11*BUS_WIDTH] <= vecrd;	
 								end
 							14: begin
 									vecrs1 <= vreg_op1[15*BUS_WIDTH-1:14*BUS_WIDTH];
 									vecrs2 <= vreg_op2[15*BUS_WIDTH-1:14*BUS_WIDTH];
-									vecrd  <= vreg_op3[15*BUS_WIDTH-1:14*BUS_WIDTH];
+									vecrs3  <= vreg_op3[15*BUS_WIDTH-1:14*BUS_WIDTH];
 									valu_out[13*BUS_WIDTH-1:12*BUS_WIDTH] <= vecrd;	
 								end
 							15: begin
 									vecrs1 <= vreg_op1[16*BUS_WIDTH-1:15*BUS_WIDTH];
 									vecrs2 <= vreg_op2[16*BUS_WIDTH-1:15*BUS_WIDTH];
-									vecrd  <= vreg_op3[16*BUS_WIDTH-1:15*BUS_WIDTH];
+									vecrs3  <= vreg_op3[16*BUS_WIDTH-1:15*BUS_WIDTH];
 									valu_out[14*BUS_WIDTH-1:13*BUS_WIDTH] <= vecrd;	
 								end
 							default: begin
 										vecrs1 <= vecrs1;
 										vecrs2 <= vecrs2;
-										vecrd <= vecrd;
+										vecrs3 <= vecrs3;
 									 end
 						endcase
 						elem_n <= elem_n + 1;
@@ -438,13 +444,13 @@ module picorv32_pcpi_vec (
 							16: begin
 									vecrs1 <= vreg_op1[16*BUS_WIDTH-1:15*BUS_WIDTH];
 									vecrs2 <= vreg_op2[16*BUS_WIDTH-1:15*BUS_WIDTH];
-									vecrd  <= vreg_op3[16*BUS_WIDTH-1:15*BUS_WIDTH];
+									vecrs3  <= vreg_op3[16*BUS_WIDTH-1:15*BUS_WIDTH];
 									valu_out[15*BUS_WIDTH-1:14*BUS_WIDTH] <= vecrd;	
 								end
 							17: begin
 									vecrs1 <= vreg_op1[16*BUS_WIDTH-1:15*BUS_WIDTH];
 									vecrs2 <= vreg_op2[16*BUS_WIDTH-1:15*BUS_WIDTH];
-									vecrd  <= vreg_op3[16*BUS_WIDTH-1:15*BUS_WIDTH];
+									vecrs3  <= vreg_op3[16*BUS_WIDTH-1:15*BUS_WIDTH];
 									valu_out[16*BUS_WIDTH-1:15*BUS_WIDTH] <= vecrd;	
 									pcpi_ready <= 1;
 									pcpi_wait <= 0; //Making the wait flag 0 after execution
@@ -473,10 +479,10 @@ module picorv32_pcpi_vec (
 							end
 							else if(instr_vdot) begin
 								//Assuming that there are 4 ALUs in the co-processor
-								vecrd[31:24] <= vecrs1[31:24] * vecrs2[31:24] + vecrd[31:24];
-								vecrd[23:16] <= vecrs1[23:16] * vecrs2[23:16] + vecrd[23:16];
-								vecrd[15:8]  <= vecrs1[15:8]  * vecrs2[15:8] + vecrd[15:8];
-								vecrd[7:0]   <= vecrs1[7:0]   * vecrs2[7:0] + vecrd[7:0];
+								vecrd[31:24] <= vecrs1[31:24] * vecrs2[31:24] + vecrs3[31:24];
+								vecrd[23:16] <= vecrs1[23:16] * vecrs2[23:16] + vecrs3[23:16];
+								vecrd[15:8]  <= vecrs1[15:8]  * vecrs2[15:8] + vecrs3[15:8];
+								vecrd[7:0]   <= vecrs1[7:0]   * vecrs2[7:0] + vecrs3[7:0];
 							end
 						end
 						//If SEW is 16 
@@ -488,8 +494,8 @@ module picorv32_pcpi_vec (
 							end
 							else if(instr_vdot) begin
 								//Assuming that there are 2 16-bit in the co-processor
-								vecrd[31:16] <= vecrs1[31:16] * vecrs2[31:16] + vecrd[31:16];
-								vecrd[15:0]  <= vecrs1[15:0]  * vecrs2[15:0] + vecrd[15:0];
+								vecrd[31:16] <= vecrs1[31:16] * vecrs2[31:16] + vecrs3[31:16];
+								vecrd[15:0]  <= vecrs1[15:0]  * vecrs2[15:0] + vecrs3[15:0];
 							end
 						end
 						//If SEW is 32
@@ -500,9 +506,9 @@ module picorv32_pcpi_vec (
 							end
 							else if(instr_vdot) begin
 								//Assuming that there are1 32-bit ALU in the co-processor
-								$display("vecrd: %d", vecrd[31:0]);
-								vecrd[31:0] <= vecrs1[31:0] * vecrs2[31:0] + vecrd[31:0];
-								$display("vecrd: %d", vecrd[31:0]);
+								// $display("vecrd: %d", vecrd[31:0]);
+								vecrd[31:0] <= vecrs1[31:0] * vecrs2[31:0] + vecrs3[31:0];
+								// $display("vecrd: %d", vecrd[31:0]);
 							end
 						end
 					end
@@ -555,12 +561,12 @@ module picorv32_pcpi_vec (
 							if(instr_vadd) begin
 								//Assuming that there are 2 32-bit ALUs in the co-processor
 								vecrd[63:32] <= vecrs1[63:32] + vecrs2[63:32];
-								vecrd[31:0] <= vecrs1[31:0] + vecrs2[31:0] + vecrd[31:0];
+								vecrd[31:0]  <= vecrs1[31:0] + vecrs2[31:0];
 							end
 							else if(instr_vdot) begin
 								//Assuming that there are 8 ALUs in the co-processor
-								vecrd[63:32] <= vecrs1[63:32] * vecrs2[63:32]  + vecrd[63:32];
-								vecrd[31:0]  <= vecrs1[31:0] * vecrs2[31:0]  + vecrd[31:0];
+								vecrd[63:32] <= vecrs1[63:32] * vecrs2[63:32]  + vecrs3[63:32];
+								vecrd[31:0]  <= vecrs1[31:0] * vecrs2[31:0]  + vecrs3[31:0];
 							end
 						end
 					end
@@ -623,7 +629,7 @@ module picorv32_pcpi_vec (
 							else if (instr_vdot) begin
 								//Assuming that there are 8 16-bit ALUs in the co-processor
 								vecrd[127:112] <= vecrs1[127:112] * vecrs2[127:112];
-								vecrd[111:96] <= vecrs1[111:96] * vecrs2[111:96];
+								vecrd[111:96]  <= vecrs1[111:96] * vecrs2[111:96];
 								vecrd[95:80]   <= vecrs1[95:80] * vecrs2[95:80];
 								vecrd[79:64]   <= vecrs1[79:64] * vecrs2[79:64];
 								vecrd[63:48]   <= vecrs1[63:48] * vecrs2[63:48];
@@ -637,8 +643,8 @@ module picorv32_pcpi_vec (
 							if(instr_vadd) begin
 								//Assuming that there are 4 32-bit ALUs in the co-processor
 								vecrd[127:96] <= vecrs1[127:96] + vecrs2[127:96];
-								vecrd[95:64]   <= vecrs1[95:64] + vecrs2[95:64];
-								vecrd[63:32]   <= vecrs1[63:32] + vecrs2[63:32];
+								vecrd[95:64]  <= vecrs1[95:64] + vecrs2[95:64];
+								vecrd[63:32]  <= vecrs1[63:32] + vecrs2[63:32];
 								vecrd[31:0]   <= vecrs1[31:0] + vecrs2[31:0];
 							end
 							else if (instr_vdot) begin
@@ -663,7 +669,6 @@ module picorv32_pcpi_vec (
 								reg_op1 <= reg_op1 + 4;
 							//reg_op2 contains the stride
 							else if(instr_vload_str) begin
-								$display("reg_op1: %d, reg_op2: %d", reg_op1, reg_op2);
 								reg_op1 <= reg_op1 + reg_op2; //If it is strided load, increase the PC usind stride
 							end
 
