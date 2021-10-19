@@ -3,7 +3,6 @@
  *  Implemented single co-processor for all the vect_instrns with dedicated port to coproecessor
  *  And also added vector strided load and vdot instruction. But assumed 3 port vector regs
  *  Executes on all the elements of vector reg irrespective of membits (vlen)
- *  Main difference between this and previous backup is that the vecregs is byte addressable here
 
  *  Copyright (C) 2015  Clifford Wolf <clifford@clifford.at>
  *
@@ -733,10 +732,9 @@ module picorv32 #(
 	wire instr_trap;
 	//For vector instructions
 	wire instr_vec; //To indicate vector instructions
-	reg instr_vsetvli,instr_vsetvl,instr_vsetprecision; //Vec instrn to set the csr reg values
+	reg instr_vsetvli,instr_vsetvl; //Vec instrn to set the csr reg values
 	reg instr_vload,instr_vstore;   //Vec load includes strided also and store instr
 	reg instr_vdot,instr_vadd; //For dot product and addition
-	reg instr_vleuvarp, instr_vlesvarp; //Instructions added for vap
 
 	
 	
@@ -776,8 +774,7 @@ module picorv32 #(
 			instr_rdcycle, instr_rdcycleh, instr_rdinstr, instr_rdinstrh,
 			instr_getq, instr_setq, instr_retirq, instr_maskirq, instr_waitirq, instr_timer };
 	//For vector instructions
-	assign instr_vec = (WITH_PCPI) && {instr_vload,instr_vstore,instr_vadd,instr_vdot,instr_vsetvli,instr_vsetvl, 
-						instr_vsetprecision, instr_vleuvarp, instr_vlesvarp}; //Assigning 1 if it is a vector instrn
+	assign instr_vec = (WITH_PCPI) && {instr_vload,instr_vstore,instr_vadd,instr_vdot,instr_vsetvli,instr_vsetvl}; //Assigning 1 if it is a vector instrn
 
 //Enable for read_cycle instructions
 	wire is_rdcycle_rdcycleh_rdinstr_rdinstrh;
@@ -856,9 +853,6 @@ module picorv32 #(
 		if (instr_vstore)   new_ascii_instr = "vstore";
 		if (instr_vsetvl)   new_ascii_instr = "vsetvl";
 		if (instr_vsetvli)  new_ascii_instr = "vsetvli";
-		if (instr_vsetprecision) new_ascii_instr = "instr_vsetprecision";
-		if (instr_vleuvarp) new_ascii_instr = "instr_vleuvarp";
-		if (instr_vlesvarp) new_ascii_instr = "instr_vlesvarp";
 		if (instr_vadd)		new_ascii_instr = "vadd";
 		if (instr_vdot)     new_ascii_instr = "vdot";
 	end
@@ -1192,13 +1186,9 @@ module picorv32 #(
 			instr_vstore  <= ((mem_rdata_q[28:26]==3'b000) || (mem_rdata_q[28:26]==3'b010)) && mem_rdata_q[6:0] == 7'b0100111; // strided also supported,NF not supported (mem_rdata_q[24:20]==5'b00000) 
 			instr_vsetvl  <= mem_rdata_q[14:12]==3'b111 && mem_rdata_q[31]==1 && mem_rdata_q[6:0] == 7'b1010111; 
 			instr_vsetvli <= mem_rdata_q[14:12]==3'b111 && mem_rdata_q[31]==0 && mem_rdata_q[6:0] == 7'b1010111;
-			// $display("entered condition, [14:12]: %b, [6:0]: %b, [31:25]: %b", mem_rdata_q[14:12], mem_rdata_q[6:0], mem_rdata_q[31:25]);
-			instr_vsetprecision <= (mem_rdata_q[14:12]==3'b111 && mem_rdata_q[6:0] == 7'b1011011 && mem_rdata_q[31:25] == 7'b1000000);
-			instr_vleuvarp <=  (mem_rdata_q[29:26]==4'b0000 && mem_rdata_q[14:12]==3'b111 && mem_rdata_q[6:0] == 7'b1011011 && mem_rdata_q[31:30] == 2'b00);
-			instr_vlesvarp <= (mem_rdata_q[29:26]==4'b0001 && mem_rdata_q[14:12]==3'b111 && mem_rdata_q[6:0] == 7'b1011011 && mem_rdata_q[31:30] == 2'b00);
-			instr_vdot     <= mem_rdata_q[31:26]==6'b111001 && mem_rdata_q[14:12] == 3'b000 && mem_rdata_q[6:0]==7'b1010111;
-			instr_vadd     <= (mem_rdata_q[31:26]==6'b000000 && mem_rdata_q[14:12] == 3'b000 && mem_rdata_q[6:0]==7'b1010111);
-			v_enc_width    <= (is_vlo || is_vst)? mem_rdata_q[14:12]:0;
+			instr_vdot    <= mem_rdata_q[31:26]==6'b111001 && mem_rdata_q[14:12] == 3'b000 && mem_rdata_q[6:0]==7'b1010111;
+			instr_vadd    <= (mem_rdata_q[31:26]==6'b000000 && mem_rdata_q[14:12] == 3'b000 && mem_rdata_q[6:0]==7'b1010111);
+			v_enc_width <= (is_vlo || is_vst)? mem_rdata_q[14:12]:0;
 
 			instr_rdcycle  <= ((mem_rdata_q[6:0] == 7'b1110011 && mem_rdata_q[31:12] == 'b11000000000000000010) ||
 			                   (mem_rdata_q[6:0] == 7'b1110011 && mem_rdata_q[31:12] == 'b11000000000100000010)) && ENABLE_COUNTERS;
@@ -1844,7 +1834,7 @@ module picorv32 #(
 							end
 						end 
 						//For vector instructions
-						else if(WITH_PCPI && instr_vec) begin	
+						else if(WITH_PCPI && instr_vec) begin					
 							//If vector co-processor is free and the instrn is vector instrn
 							if(!is_vec_used) begin
 								$display("Entered vector instruction condition in 1840, time: %d", $time);

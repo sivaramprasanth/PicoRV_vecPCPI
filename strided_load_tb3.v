@@ -4,7 +4,7 @@
 // distribute this software, either in source code form or as a compiled
 // binary, for any purpose, commercial or non-commercial, and by any
 // means.
-//SEW of 32 bits
+//SEW of 16 bits
 
 `timescale 1 ns / 1 ps
 
@@ -125,7 +125,7 @@ module testbench;
 		//Vl is the number of elements to modify every time
 		memory[0] = 32'h 00800113; //---> to set vl(o of elements) as 4 (Addi x2,x0,4) 
 		// Ox 00017257
-		memory[1] = 32'b 00000000100000010111001001010111; //Vsetvli x4,x2, LMUL=1 E32 --->  0 00000001000 00010 111 00100 1010111 ---> 00817257 (sew - 32)
+		memory[1] = 32'b 00000000010000010111001001010111; //Vsetvli x4,x2, LMUL=1 E16 --->  0 00000000100 00010 111 00100 1010111 ---> 00817257 (sew - 32)
 		memory[2] = 32'h 19000093; //addi x1,x0,400
         memory[3] = 32'h 00400393; //addi x7,x0,4  --> Loading the stride
 		//31 29 28 26 25 24    20 19  15 14 12 11    7 6     0
