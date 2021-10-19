@@ -4,7 +4,7 @@
 // distribute this software, either in source code form or as a compiled
 // binary, for any purpose, commercial or non-commercial, and by any
 // means.
-//SEW of 32 bits
+//SEW of 8
 
 `timescale 1 ns / 1 ps
 
@@ -123,41 +123,41 @@ module testbench;
 			memory[i] = 32'h 00000093; //NOP
 		
 		//Vl is the number of elements to modify every time
-		memory[0] = 32'h 00800113; //---> to set vl(o of elements) as 4 (Addi x2,x0,4) 
+        memory[0] = 32'h 00400113; //---> to set vap as 4 (Addi x2,x0,4) 
+        memory[1] = 32'h 00100093; //---> to set elem_off as 1 (Addi x1,x0,1)  000000000001 00000 000 00001 0010011
+        // funct  rs2(off)  vap  fun        opcode
+        //1000000 00001    00010 111 00000 1011011
+        memory[2] = 32'b 10000000000100010111000001011011; //Setting the value of vap as 2
 		// Ox 00017257
-		memory[1] = 32'b 00000000100000010111001001010111; //Vsetvli x4,x2, LMUL=1 E32 --->  0 00000001000 00010 111 00100 1010111 ---> 00817257 (sew - 32)
-		memory[2] = 32'h 19000093; //addi x1,x0,400
-        memory[3] = 32'h 00400393; //addi x7,x0,4  --> Loading the stride
-		//31 29 28 26 25 24    20 19  15 14 12 11    7 6     0
-		// nf | mop | vm |  rs2 |  rs1 | width |  vd  |0000111| VL* strided
-        memory[4] = 32'b 00001010011100001111000010000111; //  000 010 1 00111 00001 111 00001 0000111 vlse.v v1, (x1), x7
-		// memory[5] = 32'h 1b800093; //addi x1,x0,440
-		// memory[6] = 32'b 00001010011100001111000100000111; //  000 010 1 00111 00001 111 00010 0000111 vlse.v v2, (x1), x7
-        // // Strided store instruction with the same stride in x7 i.e 8
-		// memory[5] = 32'h 25800093; //addi x1,x0,440
-		// memory[6] = 32'b 00001010011100001111000010100111; //  000 010 1 00111 00001 111 00001 0100111 vsse.v v1, (x1), x7
-		// memory[7] = 32'b 00001010011100001111000010100111; //  000 010 1 00111 00001 111 00001 0100111 vsse.v v1, (x1), x7
-
-
-		memory[100] = 32'h 04030201;
-		memory[101] = 32'h 08070605;
-        memory[102] = 32'h 0c0b0a09;
-		memory[103] = 32'h 000f0e0d;
-        memory[104] = 32'h 0a090807;
-		memory[105] = 32'h 0807060b;
-        memory[106] = 32'h 0c0b0a0c;
-		memory[107] = 32'h 000f0e0d;
+        memory[3] = 32'h 00800113; //Addi x2, x0, 8  (Set Vl as 8)
+		memory[4] = 32'b 00000000000000010111001001010111; //Vsetvli x4,x2, LMUL=1 E8 --->  0 00000000000 00010 111 00100 1010111 ---> 00817257 (sew - 8)
+		memory[5] = 32'h 19000093; //addi x1,x0,400
+        memory[6] = 32'h 00100393; //addi x7,x0,1  --> byte offset (stride)
+		//31 30 29 26 25 24 	20 19  15 14 12 11    7 6     0
+		// 00 | 0000 | vm |  rs2 |  rs1 | width |  vd  |1011011| vles_varp
+		// 00 | 0001 | vm |  rs2 |  rs1 | width |  vd  |1011011| vles_varp
+        memory[7] = 32'b 00000110011100001111000011011011; //  000 010 1 00111 00001 111 00001 0000111 vles_varp.v v1, (x1), x7
+		
+		//Data in memory to be loaded
+		memory[100] = 32'b 00000100000000110000001000000001;
+		memory[101] = 32'b 00001000000001110000011000000101;
+        memory[102] = 32'b 00001100000010110000101000001001;
+		memory[103] = 32'b 00000000000011110000111000001101;
+        memory[104] = 32'h 14131211;
+		memory[105] = 32'h 18171615;
+        memory[106] = 32'h 1c1b1a19;
+		memory[107] = 32'h 101f1e1d;
         memory[108] = 32'h 00000009; 
 		memory[109] = 32'h 00000000;
 	
-		memory[110] = 32'h 23222120;
-        memory[111] = 32'h 27262524;
-		memory[112] = 32'h 2b2a2928;
-		memory[113] = 32'h 2f2e2d2c;
-        memory[114] = 32'h 33323130;
-		memory[115] = 32'h 37363534;
-		memory[116] = 32'h 3b3a3938;
-        memory[117] = 32'h 3f3e3d3c;
+		memory[110] = 32'h 0000000a;
+        memory[111] = 32'h 00000014;
+		memory[112] = 32'h 0000001e;
+		memory[113] = 32'h 00000028;
+        memory[114] = 32'h 00000032;
+		memory[115] = 32'h 0000003c;
+		memory[116] = 32'h 00000046;
+        memory[117] = 32'h 00000050;
 		memory[118] = 32'h 0000005a;
 
 		//Vtype reg is 00000000000, vtype[1:0] -> vlmul[1:0] (sets LMUL value)
@@ -189,9 +189,9 @@ module testbench;
 			if (vec_mem_addr < 1024) begin
 				vec_mem_rdata <= memory[vec_mem_addr >> 2];
 				vec_mem_ready <= 1;
-				// if(vec_mem_wstrb == 4'b0)
-					// $display("mem_addr: %d, mem_data: %x,mem_ready:%d, time:%d",vec_mem_addr, vec_mem_rdata,vec_mem_ready, $time);
-				if(vec_mem_wstrb != 4'b0)
+				// $display("mem_addr: %d, mem_data: %x,mem_ready:%d, time:%d",vec_mem_addr, vec_mem_rdata,vec_mem_ready, $time);
+				// $display("Time:%d ,Data read from memory: %x, addr: %d", $time,vec_mem_rdata, vec_mem_addr);
+				if(|(vec_mem_wstrb) == 1)
 					$display("Data written to memory addr: %d is %x, mem_wstrb: %b, time:%d", vec_mem_addr, vec_mem_wdata, vec_mem_wstrb, $time);
 				if (vec_mem_wstrb[0]) memory[vec_mem_addr >> 2][ 7: 0] <= vec_mem_wdata[ 7: 0];
 				if (vec_mem_wstrb[1]) memory[vec_mem_addr >> 2][15: 8] <= vec_mem_wdata[15: 8];
