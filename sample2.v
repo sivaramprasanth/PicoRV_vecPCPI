@@ -56,11 +56,6 @@ module picorv32_pcpi_vec #(
 					mem_str_ready <= 0;
 					if(mem_ready == 1) begin
 						// // $display("Inside mem_interface, mem_wdata:%x, time:%d", vreg_rdata1_latched,$time);
-						// if(instr_vstore || instr_vstore_str) begin
-						// 	// mem_addr <= reg_op1; //This should work only is the instr is store
-						// 	mem_wdata <= vreg_rdata1_latched; //changed here
-						// 	mem_wstrb <= 4'b1111 & {4{mem_do_wdata}}; //mem_la_wstrb & {4{mem_la_write}}
-						// end
 						if(instr_vload || instr_vload_str || instr_vleuvarp || instr_vlesvarp) begin
 							mem_rdata_word <= mem_rdata; //reads 32 bits
 						end
@@ -112,24 +107,24 @@ module picorv32_pcpi_vec #(
 							mem_rdata_word[13] <= ld_data[(ind1+reg_op2*13*8) +: 1];
 							mem_rdata_word[14] <= ld_data[(ind1+reg_op2*14*8) +: 1];
 							mem_rdata_word[15] <= ld_data[(ind1+reg_op2*15*8) +: 1];
-							mem_rdata_word[16]   <= ld_data[ind1 +: 1];
-							mem_rdata_word[17]   <= ld_data[(ind1+reg_op2*8) +: 1];
-							mem_rdata_word[18]   <= ld_data[(ind1+reg_op2*16) +: 1];
-							mem_rdata_word[19]   <= ld_data[ind1+reg_op2*24 +: 1];
-							mem_rdata_word[20]   <= ld_data[(ind1+reg_op2*32) +: 1];
-							mem_rdata_word[21] <= ld_data[(ind1+reg_op2*40) +: 1];
-							mem_rdata_word[22] <= ld_data[(ind1+reg_op2*48) +: 1];
-							mem_rdata_word[23] <= ld_data[(ind1+reg_op2*56) +: 1];
-							mem_rdata_word[24] <= ld_data[ind1+reg_op2*8*8 +: 1];
-							mem_rdata_word[25] <= ld_data[(ind1+reg_op2*9*8) +: 1];
-							mem_rdata_word[26] <= ld_data[(ind1+reg_op2*10*8) +: 1];
-							mem_rdata_word[27] <= ld_data[ind1+reg_op2*11*8 +: 1];
-							mem_rdata_word[28] <= ld_data[(ind1+reg_op2*12*8) +: 1];
-							mem_rdata_word[39] <= ld_data[(ind1+reg_op2*13*8) +: 1];
-							mem_rdata_word[30] <= ld_data[(ind1+reg_op2*14*8) +: 1];
-							mem_rdata_word[31] <= ld_data[(ind1+reg_op2*15*8) +: 1];
+							mem_rdata_word[16]   <= ld_data[(ind1 + reg_op2*8*16) +: 1];
+							mem_rdata_word[17]   <= ld_data[(ind1+reg_op2*17*8) +: 1];
+							mem_rdata_word[18]   <= ld_data[(ind1+reg_op2*18*8) +: 1];
+							mem_rdata_word[19]   <= ld_data[ind1+reg_op2*19*8 +: 1];
+							mem_rdata_word[20]   <= ld_data[(ind1+reg_op2*20*8) +: 1];
+							mem_rdata_word[21] <= ld_data[(ind1+reg_op2*21*8) +: 1];
+							mem_rdata_word[22] <= ld_data[(ind1+reg_op2*22*8) +: 1];
+							mem_rdata_word[23] <= ld_data[(ind1+reg_op2*23*8) +: 1];
+							mem_rdata_word[24] <= ld_data[ind1+reg_op2*24*8 +: 1];
+							mem_rdata_word[25] <= ld_data[(ind1+reg_op2*25*8) +: 1];
+							mem_rdata_word[26] <= ld_data[(ind1+reg_op2*26*8) +: 1];
+							mem_rdata_word[27] <= ld_data[ind1+reg_op2*27*8 +: 1];
+							mem_rdata_word[28] <= ld_data[(ind1+reg_op2*28*8) +: 1];
+							mem_rdata_word[39] <= ld_data[(ind1+reg_op2*29*8) +: 1];
+							mem_rdata_word[30] <= ld_data[(ind1+reg_op2*30*8) +: 1];
+							mem_rdata_word[31] <= ld_data[(ind1+reg_op2*31*8) +: 1];
 							mem_str_ready <= 1; 
-							ind1 <= ind1 + 16*8*reg_op2;
+							ind1 <= ind1 + 32*8*reg_op2;
 						end
 						else if(vap == 10'b0000000010) begin
 							//The first addr will be ind1, next will be ind1+regop2*1*8, next reg_op2*2*8 etc
@@ -202,11 +197,200 @@ module picorv32_pcpi_vec #(
 						end
 					end
 				end
-				2: begin
-
+				2:  begin
+					if(condition_bit == 1) begin
+						mem_str_ready <= 0;
+						if(instr_vstore || instr_vstore_str) begin
+							vecregs_rstrb1 <= 1 << (temp_count2+1);
+							if(SEW == 10'b0000001000) begin
+								$display("vecreg_data: %x, cnt:%d, time:%d", vecregs_rdata1, cnt, $time);
+								st_data[cnt +: 8] <= vecregs_rdata1[7:0];
+								st_data[(cnt+reg_op2*8) +: 8] <= vecregs_rdata1[15:8];
+								st_data[(cnt+reg_op2*2*8) +: 8] <= vecregs_rdata1[23:16];
+								st_data[(cnt+reg_op2*3*8) +: 8] <= vecregs_rdata1[31:24];
+								st_strb[cnt >> 3] <= 1;
+								st_strb[(cnt >> 3) + reg_op2] <= 1;
+								st_strb[(cnt >> 3) + 2*reg_op2] <= 1;
+								st_strb[(cnt >> 3) + 3*reg_op2] <= 1;
+								cnt <= cnt + 4*8*reg_op2;
+								mem_str_ready <= 1; 
+							end
+							//SEW is 16
+							else if(SEW == 10'b0000010000) begin
+								st_data[cnt +: 16] <= vecregs_rdata1[15:0];
+								st_data[(cnt+reg_op2*8) +: 16] <= vecregs_rdata1[31:16];
+								st_strb[(cnt >> 3) +: 2] <= 2'b11;
+								st_strb[((cnt >> 3) + reg_op2) +: 2] <= 2'b11;
+								cnt <= cnt + 2*8*reg_op2;
+								mem_str_ready <= 1; 
+							end
+							//SEW is 32
+							else if(SEW == 10'b0000100000) begin
+								st_data[cnt +: 32] <= vecregs_rdata1;
+								st_strb[(cnt >> 3) +: 4] <= 4'b1111;
+								cnt <= cnt + 8*reg_op2;
+								mem_str_ready <= 1; 
+							end
+							condition_bit = 0;
+						end
+						else if(instr_vseuvarp || instr_vsesvarp) begin
+							//SEW is 1
+							if(vap == 10'b0000000001) begin
+								$display("vecreg_data: %x, cnt:%d, time:%d", vecregs_rdata1, cnt, $time);
+								st_data[cnt +: 1] <= vecregs_rdata1[0];
+								st_data[(cnt+reg_op2*8) +: 1] <= vecregs_rdata1[1];
+								st_data[(cnt+reg_op2*2*8) +: 1] <= vecregs_rdata1[2];
+								st_data[(cnt+reg_op2*3*8) +: 1] <= vecregs_rdata1[3];
+								st_data[(cnt+reg_op2*4*8) +: 1] <= vecregs_rdata1[4];
+								st_data[(cnt+reg_op2*5*8) +: 1] <= vecregs_rdata1[5];
+								st_data[(cnt+reg_op2*6*8) +: 1] <= vecregs_rdata1[6];
+								st_data[(cnt+reg_op2*7*8) +: 1] <= vecregs_rdata1[7];
+								st_data[(cnt+reg_op2*8*8) +: 1] <= vecregs_rdata1[8];
+								st_data[(cnt+reg_op2*9*8) +: 1] <= vecregs_rdata1[9];
+								st_data[(cnt+reg_op2*10*8) +: 1] <= vecregs_rdata1[10];
+								st_data[(cnt+reg_op2*11*8) +: 1] <= vecregs_rdata1[11];
+								st_data[(cnt+reg_op2*12*8) +: 1] <= vecregs_rdata1[12];
+								st_data[(cnt+reg_op2*13*8) +: 1] <= vecregs_rdata1[13];
+								st_data[(cnt+reg_op2*14*8) +: 1] <= vecregs_rdata1[14];
+								st_data[(cnt+reg_op2*15*8) +: 1] <= vecregs_rdata1[15];
+								st_data[(cnt+reg_op2*16*8) +: 1] <= vecregs_rdata1[16];
+								st_data[(cnt+reg_op2*17*8) +: 1] <= vecregs_rdata1[17];
+								st_data[(cnt+reg_op2*18*8) +: 1] <= vecregs_rdata1[18];
+								st_data[(cnt+reg_op2*19*8) +: 1] <= vecregs_rdata1[19];
+								st_data[(cnt+reg_op2*20*8) +: 1] <= vecregs_rdata1[20];
+								st_data[(cnt+reg_op2*21*8) +: 1] <= vecregs_rdata1[21];
+								st_data[(cnt+reg_op2*22*8) +: 1] <= vecregs_rdata1[22];
+								st_data[(cnt+reg_op2*23*8) +: 1] <= vecregs_rdata1[23];
+								st_data[(cnt+reg_op2*24*8) +: 1] <= vecregs_rdata1[24];
+								st_data[(cnt+reg_op2*25*8) +: 1] <= vecregs_rdata1[25];
+								st_data[(cnt+reg_op2*26*8) +: 1] <= vecregs_rdata1[26];
+								st_data[(cnt+reg_op2*27*8) +: 1] <= vecregs_rdata1[27];
+								st_data[(cnt+reg_op2*28*8) +: 1] <= vecregs_rdata1[28];
+								st_data[(cnt+reg_op2*29*8) +: 1] <= vecregs_rdata1[29];
+								st_data[(cnt+reg_op2*30*8) +: 1] <= vecregs_rdata1[30];
+								st_data[(cnt+reg_op2*31*8) +: 1] <= vecregs_rdata1[31];
+								st_strb[cnt >> 3] <= 1;
+								st_strb[(cnt >> 3) + reg_op2] <= 1;
+								st_strb[(cnt >> 3) + 2*reg_op2] <= 1;
+								st_strb[(cnt >> 3) + 3*reg_op2] <= 1;
+								st_strb[(cnt >> 3) + 4*reg_op2] <= 1;
+								st_strb[(cnt >> 3) + 5*reg_op2] <= 1;
+								st_strb[(cnt >> 3) + 6*reg_op2] <= 1;
+								st_strb[(cnt >> 3) + 7*reg_op2] <= 1;
+								st_strb[(cnt >> 3) + 8*reg_op2] <= 1;
+								st_strb[(cnt >> 3) + 9*reg_op2] <= 1;
+								st_strb[(cnt >> 3) + 10*reg_op2] <= 1;
+								st_strb[(cnt >> 3) + 11*reg_op2] <= 1;
+								st_strb[(cnt >> 3) + 12*reg_op2] <= 1;
+								st_strb[(cnt >> 3) + 13*reg_op2] <= 1;
+								st_strb[(cnt >> 3) + 14*reg_op2] <= 1;
+								st_strb[(cnt >> 3) + 15*reg_op2] <= 1;
+								st_strb[(cnt >> 3) + 16*reg_op2] <= 1;
+								st_strb[(cnt >> 3) + 17*reg_op2] <= 1;
+								st_strb[(cnt >> 3) + 18*reg_op2] <= 1;
+								st_strb[(cnt >> 3) + 19*reg_op2] <= 1;
+								st_strb[(cnt >> 3) + 20*reg_op2] <= 1;
+								st_strb[(cnt >> 3) + 21*reg_op2] <= 1;
+								st_strb[(cnt >> 3) + 22*reg_op2] <= 1;
+								st_strb[(cnt >> 3) + 23*reg_op2] <= 1;
+								st_strb[(cnt >> 3) + 24*reg_op2] <= 1;
+								st_strb[(cnt >> 3) + 25*reg_op2] <= 1;
+								st_strb[(cnt >> 3) + 26*reg_op2] <= 1;
+								st_strb[(cnt >> 3) + 27*reg_op2] <= 1;
+								st_strb[(cnt >> 3) + 28*reg_op2] <= 1;
+								st_strb[(cnt >> 3) + 29*reg_op2] <= 1;
+								st_strb[(cnt >> 3) + 30*reg_op2] <= 1;
+								st_strb[(cnt >> 3) + 31*reg_op2] <= 1;
+								cnt <= cnt + 32*8*reg_op2;
+								mem_str_ready <= 1; 
+							end
+							if(vap == 10'b0000000010) begin
+								$display("vecreg_data: %x, cnt:%d, time:%d", vecregs_rdata1, cnt, $time);
+								st_data[cnt +: 2] <= vecregs_rdata1[1:0];
+								st_data[(cnt+reg_op2*8) +: 2] <= vecregs_rdata1[3:2];
+								st_data[(cnt+reg_op2*2*8) +: 2] <= vecregs_rdata1[5:4];
+								st_data[(cnt+reg_op2*3*8) +: 2] <= vecregs_rdata1[7:6];
+								st_data[(cnt+reg_op2*4*8) +: 2] <= vecregs_rdata1[9:8];
+								st_data[(cnt+reg_op2*5*8) +: 2] <= vecregs_rdata1[11:10];
+								st_data[(cnt+reg_op2*6*8) +: 2] <= vecregs_rdata1[13:12];
+								st_data[(cnt+reg_op2*7*8) +: 2] <= vecregs_rdata1[15:14];
+								st_data[(cnt+reg_op2*8*8) +: 2] <= vecregs_rdata1[17:16];
+								st_data[(cnt+reg_op2*9*8) +: 2] <= vecregs_rdata1[19:18];
+								st_data[(cnt+reg_op2*10*8) +: 2] <= vecregs_rdata1[21:20];
+								st_data[(cnt+reg_op2*11*8) +: 2] <= vecregs_rdata1[23:22];
+								st_data[(cnt+reg_op2*12*8) +: 2] <= vecregs_rdata1[25:24];
+								st_data[(cnt+reg_op2*13*8) +: 2] <= vecregs_rdata1[27:26];
+								st_data[(cnt+reg_op2*14*8) +: 2] <= vecregs_rdata1[29:28];
+								st_data[(cnt+reg_op2*15*8) +: 2] <= vecregs_rdata1[31:30];
+								st_strb[cnt >> 3] <= 1;
+								st_strb[(cnt >> 3) + reg_op2] <= 1;
+								st_strb[(cnt >> 3) + 2*reg_op2] <= 1;
+								st_strb[(cnt >> 3) + 3*reg_op2] <= 1;
+								st_strb[(cnt >> 3) + 4*reg_op2] <= 1;
+								st_strb[(cnt >> 3) + 5*reg_op2] <= 1;
+								st_strb[(cnt >> 3) + 6*reg_op2] <= 1;
+								st_strb[(cnt >> 3) + 7*reg_op2] <= 1;
+								st_strb[(cnt >> 3) + 8*reg_op2] <= 1;
+								st_strb[(cnt >> 3) + 9*reg_op2] <= 1;
+								st_strb[(cnt >> 3) + 10*reg_op2] <= 1;
+								st_strb[(cnt >> 3) + 11*reg_op2] <= 1;
+								st_strb[(cnt >> 3) + 12*reg_op2] <= 1;
+								st_strb[(cnt >> 3) + 13*reg_op2] <= 1;
+								st_strb[(cnt >> 3) + 14*reg_op2] <= 1;
+								st_strb[(cnt >> 3) + 15*reg_op2] <= 1;
+								cnt <= cnt + 16*8*reg_op2;
+								mem_str_ready <= 1; 
+							end
+							if(vap == 10'b0000000100) begin
+								$display("vap condition, vecreg_data: %x, cnt:%d, time:%d", vecregs_rdata1, cnt, $time);
+								st_data[cnt +: 4] <= vecregs_rdata1[3:0];
+								st_data[(cnt+reg_op2*8) +: 4] <= vecregs_rdata1[7:4];
+								st_data[(cnt+reg_op2*2*8) +: 4] <= vecregs_rdata1[11:8];
+								st_data[(cnt+reg_op2*3*8) +: 4] <= vecregs_rdata1[15:12];
+								st_data[(cnt+reg_op2*4*8) +: 4] <= vecregs_rdata1[19:16];
+								st_data[(cnt+reg_op2*5*8) +: 4] <= vecregs_rdata1[23:20];
+								st_data[(cnt+reg_op2*6*8) +: 4] <= vecregs_rdata1[27:24];
+								st_data[(cnt+reg_op2*7*8) +: 4] <= vecregs_rdata1[31:28];
+								st_strb[cnt >> 3] <= 1;
+								st_strb[(cnt >> 3) + reg_op2] <= 1;
+								st_strb[(cnt >> 3) + 2*reg_op2] <= 1;
+								st_strb[(cnt >> 3) + 3*reg_op2] <= 1;
+								st_strb[(cnt >> 3) + 4*reg_op2] <= 1;
+								st_strb[(cnt >> 3) + 5*reg_op2] <= 1;
+								st_strb[(cnt >> 3) + 6*reg_op2] <= 1;
+								st_strb[(cnt >> 3) + 7*reg_op2] <= 1;
+								cnt <= cnt + 8*8*reg_op2;
+								mem_str_ready <= 1; 
+							end
+							else if(vap == 10'b0000001000) begin
+								$display("vecreg_data: %x, cnt:%d, time:%d", vecregs_rdata1, cnt, $time);
+								st_data[cnt +: 8] <= vecregs_rdata1[7:0];
+								st_data[(cnt+reg_op2*8) +: 8] <= vecregs_rdata1[15:8];
+								st_data[(cnt+reg_op2*2*8) +: 8] <= vecregs_rdata1[23:16];
+								st_data[(cnt+reg_op2*3*8) +: 8] <= vecregs_rdata1[31:24];
+								st_strb[cnt >> 3] <= 1;
+								st_strb[(cnt >> 3) + reg_op2] <= 1;
+								st_strb[(cnt >> 3) + 2*reg_op2] <= 1;
+								st_strb[(cnt >> 3) + 3*reg_op2] <= 1;
+								cnt <= cnt + 4*8*reg_op2;
+								mem_str_ready <= 1; 
+							end
+							condition_bit = 0;
+						end
+					end
 				end
 				3: begin
-                   
+                   	mem_str_ready <= 0;
+					if(mem_ready == 1) begin
+						// // $display("Inside mem_interface, mem_wdata:%x, time:%d", vreg_rdata1_latched,$time);
+						if(instr_vstore || instr_vstore_str || instr_vsesvarp || instr_vseuvarp) begin
+							mem_wdata <= st_data[ind1 +: 32]; //reads 32 bits
+							mem_wstrb <= st_strb[ind2 +: 4];
+							ind1 <= ind1 + 32;
+							ind2 <= ind2 + 4;
+						end
+						mem_str_ready <= 1; //str_ready will be 1 irrespective of the instruction
+					end
                 end
 			endcase
 		end
@@ -258,6 +442,8 @@ module picorv32_pcpi_vec #(
 			instr_vload_str <= (pcpi_insn[28:26]==3'b010) && (pcpi_insn[14:12]==3'b111) && (pcpi_insn[6:0] == 7'b0000111); //Strided load
 			instr_vleuvarp <= (pcpi_insn[29:26]==4'b0000 && pcpi_insn[14:12]==3'b111 && pcpi_insn[6:0] == 7'b1011011 && pcpi_insn[31:30] == 2'b00); //Unit strided load for vbp
 			instr_vlesvarp <= (pcpi_insn[29:26]==4'b0001 && pcpi_insn[14:12]==3'b111 && pcpi_insn[6:0] == 7'b1011011 && pcpi_insn[31:30] == 2'b00); //Strided load for vbp
+			instr_vseuvarp <= (pcpi_insn[29:26]==4'b0000 && pcpi_insn[14:12]==3'b111 && pcpi_insn[6:0] == 7'b1011011 && pcpi_insn[31:30] == 2'b01); //Unit strided store for vbp
+			instr_vsesvarp <= (pcpi_insn[29:26]==4'b0001 && pcpi_insn[14:12]==3'b111 && pcpi_insn[6:0] == 7'b1011011 && pcpi_insn[31:30] == 2'b01); //Strided store for vbp
 			instr_vstore  <= (pcpi_insn[24:20]==5'b00000) && (pcpi_insn[28:26]==3'b000) && (pcpi_insn[6:0] == 7'b0100111); // only unit stride supported,NF not supported 
 			instr_vstore_str <= (pcpi_insn[28:26]==3'b010) && (pcpi_insn[14:12]==3'b111) && (pcpi_insn[6:0] == 7'b0100111); //Strided store, works for 32 bit SEW
 			instr_vsetvl  <= (pcpi_insn[14:12]==3'b111) && (pcpi_insn[31]==1) && (pcpi_insn[6:0] == 7'b1010111); 
@@ -265,7 +451,7 @@ module picorv32_pcpi_vec #(
 			instr_vsetprecision <= (pcpi_insn[14:12]==3'b111 && pcpi_insn[6:0] == 7'b1011011 && pcpi_insn[31:25] == 7'b1000000);
 			instr_vdot    <= (pcpi_insn[31:26]==6'b111001) && (pcpi_insn[14:12] == 3'b000) && (pcpi_insn[6:0]==7'b1010111);
 			instr_vadd    <= (pcpi_insn[31:26]==6'b000000) && (pcpi_insn[14:12] == 3'b000) && (pcpi_insn[6:0]==7'b1010111);
-			v_enc_width   <= (instr_vload || instr_vstore || instr_vload_str || instr_vstore_str || instr_vleuvarp || instr_vlesvarp)? pcpi_insn[14:12]:0;
+			v_enc_width   <= (instr_vload || instr_vstore || instr_vload_str || instr_vstore_str || instr_vleuvarp || instr_vlesvarp || instr_vseuvarp || instr_vsesvarp)? pcpi_insn[14:12]:0;
 		end
 	end
 	
@@ -302,13 +488,19 @@ module picorv32_pcpi_vec #(
 	reg [2:0] v_enc_width;
 	reg [10:0] v_membits; //Contains the number of bits to be loaded from memory
 	reg [15:0] vecregs_wstrb_temp; //Used to store write strobe
-    reg [511:0] ld_data;
+    reg [511:0] ld_data; //To use flat memory
+	reg [511:0] st_data; //To use flat memory for store
+	reg [15:0] mem_write_no; //No of memory writes required for vector store
+	reg [63:0] st_strb; //64 bit strb used for vector store (1 bit is for 1 byte)
     reg [9:0] cnt;
 	reg temp_var = 0; //Used for a reset condition for vector load
+	reg condition_bit; //Used in memory FSM
     reg [9:0] ind1; //Used for vec load
+	reg [5:0] ind2; //Used to index the strb
     reg [5:0] no_words; //No of words to read
 	reg [4:0] bits_remaining; //Bits remaining after words are loaded
     reg [5:0] temp_count; //Used for indexing (strb in vector regs)
+	reg [4:0] temp_count2; //Used for reading data from vec reg during store
 	//Variables used by Vadd and Vdot
 	reg [7:0] elem_n;
 	reg [31:0] vecrs1;
@@ -357,10 +549,9 @@ module picorv32_pcpi_vec #(
 	localparam cpu_state_exec    = 8'b00100000;
 	// localparam cpu_state_ld_rs2 = 8'b00010000;
 	localparam cpu_state_stmem   = 8'b00010000;
-	// localparam cpu_state_shift  = 8'b00000100;
-	localparam cpu_state_ldmem   = 8'b00001000;
-    localparam cpu_state_ldmem2  = 8'b00000100;
-	// localparam cpu_state_stmem  = 8'b00001000;
+	localparam cpu_state_stmem2  = 8'b00001000;
+    localparam cpu_state_ldmem   = 8'b00000100;
+	localparam cpu_state_ldmem2  = 8'b00000010; 
 
 	reg [7:0] cpu_state;
 	reg latched_vstore;  //Added for vector instruction
@@ -440,7 +631,6 @@ module picorv32_pcpi_vec #(
 						end
 						(instr_vload): begin
 							$display("Inside v_load condition, time:%d", $time);
-							// mem_valid <= 1;
 							cpu_state <= cpu_state_ldmem;
                             init_addr <= reg_op1 >> 2; //Initial word addrr
                             final_addr <= ((reg_op1 + (vcsr_vl-1)*reg_op2 + sew_bytes) >> 2);  //Calculates the word addr of final byte 
@@ -454,14 +644,13 @@ module picorv32_pcpi_vec #(
                             cnt <= 0;
 							temp_var <= 0;
                             temp_count <= 0;
-                            ind1 <= (reg_op1[1:0] << 3); //byte addr to bit addr
+                            ind1 <= (reg_op1[1:0] << 3); //byte addr to bit addr, used to read data from ld_data reg
 							//Number of bits to read in each cycle
 							// if(SEW == 10'b0000100000)
 							mem_wordsize = 0;
 						end
 						(instr_vload_str): begin
 							$display("Inside v_load_stride condition, time:%d", $time);
-							// mem_valid <= 1;
 							cpu_state <= cpu_state_ldmem;
                             init_addr <= reg_op1 >> 2; //Initial word addrr
                             final_addr <= ((reg_op1 + (vcsr_vl-1)*reg_op2 + sew_bytes) >> 2);  //Calculates the word addr of final byte 
@@ -482,7 +671,6 @@ module picorv32_pcpi_vec #(
 						end
 						(instr_vleuvarp): begin
 							$display("Inside vap_unit_load condition, time:%d", $time);
-							// mem_valid <= 1;
 							cpu_state <= cpu_state_ldmem;
                             init_addr <= reg_op1 >> 2; //Initial word addrr
                             final_addr <= ((reg_op1 + (vcsr_vl-1)*reg_op2 + sew_bytes_vap) >> 2);  //Calculates the word addr of final byte 
@@ -523,11 +711,9 @@ module picorv32_pcpi_vec #(
 						end
 						(instr_vstore): begin
 							$display("Inside v_store condition, time:%d", $time);
-							// mem_valid <= 1;
-							vstore_bit <= 2'b00;
 							cpu_state <= cpu_state_stmem;
-							var_vlen <= 17 - ((vcsr_vl * ((v_enc_width==3'b000)? 8:(v_enc_width==3'b101)?16:(v_enc_width==3'b110)?32:SEW)) >> 5);//right shift to divide with 32
-							$display("var_length:%d, time:%d",var_vlen, $time);
+							// var_vlen <= 17 - ((vcsr_vl * ((v_enc_width==3'b000)? 8:(v_enc_width==3'b101)?16:(v_enc_width==3'b110)?32:SEW)) >> 5);//right shift to divide with 32
+							// $display("var_length:%d, time:%d",var_vlen, $time);
 							vecregs_waddr <= decoded_vd;
 							vecregs_raddr1 <= decoded_vd; //specifies v register holding store data
 							vecregs_raddr2 <= decoded_vs2;
@@ -536,23 +722,22 @@ module picorv32_pcpi_vec #(
 							mem_str_state <= 2'b00; //Initial state for strided load
 							//Updating mem_bits depending on vcsr_vl and v_enc_width(i.e instr[14:12])
 							v_membits <= vcsr_vl * ((v_enc_width==3'b000)? 8:(v_enc_width==3'b101)?16:(v_enc_width==3'b110)?32:SEW); 
-							if(SEW == 10'b0000100000) begin
-								vecldstrcnt <= 17;
-								mem_wordsize = 0;
-							end
-							if((SEW == 10'b0000001000)) begin
-								vecldstrcnt <= 18;
-								reg_op2 = 1;
-								mem_wordsize = 3;
-							end
+							no_words <= ((vcsr_vl*SEW)>>5); //No of words to read from vec reg
+							cnt <= (reg_op1[1:0] << 3); //Start index to store data in st_data reg
+							temp_var <= 0;
+							temp_count2 <= 0;
+							temp_count <= 0;
+							condition_bit <= 0;
+							mem_write_no <= (reg_op2*vcsr_vl) >> 2; //No of mem writes required
+							ind1 <= 0;
+							ind2 <= 0; //Used to index the mem strb
+							st_data <= 0;
+							st_strb <= 0;
+							mem_wordsize <= 2;
 						end
 						(instr_vstore_str): begin
 							$display("Inside v_store_stride condition, time:%d", $time);
-							// mem_valid <= 1;
-							vstore_bit <= 2'b00;
 							cpu_state <= cpu_state_stmem;
-							var_vlen <= 17 - ((vcsr_vl * ((v_enc_width==3'b000)? 8:(v_enc_width==3'b101)?16:(v_enc_width==3'b110)?32:SEW)) >> 5);//right shift to divide with 32
-							$display("var_length:%d, time:%d",var_vlen, $time);
 							vecregs_waddr <= decoded_vd;
 							vecregs_raddr1 <= decoded_vd; //specifies v register holding store data
 							vecregs_raddr2 <= decoded_vs2;
@@ -561,18 +746,66 @@ module picorv32_pcpi_vec #(
 							mem_str_state <= 2'b00; //Initial state for strided load
 							//Updating mem_bits depending on vcsr_vl and v_enc_width(i.e instr[14:12])
 							v_membits <= vcsr_vl * ((v_enc_width==3'b000)? 8:(v_enc_width==3'b101)?16:(v_enc_width==3'b110)?32:SEW); 
-							if(SEW == 10'b0000100000) begin
-								vecldstrcnt <= 17;
-								mem_wordsize <= 0;
-							end
-							if((SEW == 10'b0000001000) && reg_op2 >= 4) begin
-								vecldstrcnt <= 18;
-								mem_wordsize <= 2;
-							end
-							if((SEW == 10'b0000001000) && reg_op2 < 4) begin
-								vecldstrcnt <= 18;
-								mem_wordsize <= 3;
-							end
+							no_words <= ((vcsr_vl*SEW)>>5); //No of words to read from vec reg
+							cnt <= (reg_op1[1:0] << 3); //Start index to store data in st_data reg
+							temp_var <= 0;
+							temp_count2 <= 0;
+							temp_count <= 0;
+							condition_bit <= 0;
+							mem_write_no <= (reg_op2*vcsr_vl) >> 2;
+							ind1 <= 0; 
+							ind2 <= 0;
+							st_data <= 0;
+							st_strb <= 0;
+							// mem_wordsize <= 2;
+						end
+						(instr_vseuvarp): begin
+							$display("Inside vap_unit_store condition, time:%d", $time);
+							cpu_state <= cpu_state_stmem;
+							vecregs_waddr <= decoded_vd;
+							vecregs_raddr1 <= decoded_vd; //specifies v register holding store data
+							vecregs_raddr2 <= decoded_vs2;
+							vecregs_rstrb1 <= 16'b1;  //To read the first word
+							mem_str_ready <= 0; //Initial value of mem_str_ready
+							mem_str_state <= 2'b00; //Initial state for strided load
+							//Updating mem_bits depending on vcsr_vl and v_enc_width(i.e instr[14:12])
+							v_membits <= vcsr_vl * ((v_enc_width==3'b000)? 8:(v_enc_width==3'b101)?16:(v_enc_width==3'b110)?32:vap); 
+							no_words <= ((vcsr_vl*vap)>>5); //No of words to read from vec reg
+							cnt <= (reg_op1[1:0] << 3); //Start index to store data in st_data reg
+							temp_var <= 0;
+							temp_count2 <= 0;
+							temp_count <= 0;
+							condition_bit <= 0;
+							mem_write_no <= (reg_op2*vcsr_vl) >> 2; //No of mem writes required
+							ind1 <= 0;
+							ind2 <= 0; //Used to index the mem strb
+							st_data <= 0;
+							st_strb <= 0;
+							mem_wordsize <= 2;
+						end
+						(instr_vsesvarp): begin
+							$display("Inside vap_strided_store condition, time:%d", $time);
+							cpu_state <= cpu_state_stmem;
+							vecregs_waddr <= decoded_vd;
+							vecregs_raddr1 <= decoded_vd; //specifies v register holding store data
+							vecregs_raddr2 <= decoded_vs2;
+							vecregs_rstrb1 <= 16'b1;  //To read the first word
+							mem_str_ready <= 0; //Initial value of mem_str_ready
+							mem_str_state <= 2'b00; //Initial state for strided load
+							//Updating mem_bits depending on vcsr_vl and v_enc_width(i.e instr[14:12])
+							v_membits <= vcsr_vl * ((v_enc_width==3'b000)? 8:(v_enc_width==3'b101)?16:(v_enc_width==3'b110)?32:vap); 
+							no_words <= ((vcsr_vl*vap)>>5); //No of words to read from vec reg
+							cnt <= (reg_op1[1:0] << 3); //Start index to store data in st_data reg
+							temp_var <= 0;
+							temp_count2 <= 0;
+							temp_count <= 0;
+							condition_bit <= 0;
+							mem_write_no <= (reg_op2*vcsr_vl) >> 2; //No of mem writes required
+							ind1 <= 0;
+							ind2 <= 0; //Used to index the mem strb
+							st_data <= 0;
+							st_strb <= 0;
+							mem_wordsize <= 2;
 						end
 						(instr_vadd): begin
 							vecregs_waddr = decoded_vd;
@@ -653,6 +886,60 @@ module picorv32_pcpi_vec #(
 						pcpi_ready <= 1;
                     end
                 end
+				cpu_state_stmem: begin
+                    //Calculate for the first time and make valid as 1 
+                    if(temp_var == 0) begin
+						$display("Inside temp_var=0 condition, cnt:%d, no_words:%d, time: %d",cnt, no_words, $time);
+						mem_wordsize <= 2;
+						condition_bit <= 1;
+						bits_remaining <= v_membits[4:0]; //remainder after dividing mem_bits with 32
+						if(v_membits[4:0] > 0)
+							no_words <= no_words+1;
+						temp_var <= 1; //So that it enters this block only once
+                    end
+                    // $display("final_addr: %d, init_addr: %d, No of mem_reads: %d, time:%d",final_addr, init_addr, mem_read_no, $time);
+					if(temp_count2 < no_words) begin
+						if((mem_str_ready == 1)) begin 
+							$display("Inside mem_str_ready, time:%d", $time);
+							temp_count2 <= temp_count2 + 1;
+							condition_bit <= 1;
+							mem_str_ready <= 0;
+							//If we are loading the last word, then go to ldmem2 stage to load the data into vector reg
+							if(temp_count2 == no_words-1) begin
+								//Irrespective of SEW, the mem_wordsize will be 1 (used in mem FSM)
+								mem_wordsize <= 3;
+                                mem_valid <= 1;
+                                mem_str_ready <= 0; //Will be made 1 again in mem_wordsize FSM
+								cpu_state <= cpu_state_stmem2;
+							end
+						end
+					end
+					// else if(temp_count2 == no_words) begin
+					// 	//Remove these
+					// 	temp_count2 <= temp_count2 + 1;
+					// 	$display("st_data: %x, cnt:%d, time: %d", st_data[127:0], cnt, $time);
+					// 	$display("st_strb: %b, time: %d", st_strb, $time);
+					// 	pcpi_wait <= 0;
+					// 	pcpi_ready <= 1;
+					// end
+				end
+				cpu_state_stmem2: begin
+					if(mem_str_ready == 1) begin
+						if(mem_write_no >= 1) begin
+							set_mem_do_wdata = 1;
+							reg_op1 <= reg_op1 + 4;
+							mem_write_no <= mem_write_no - 1;
+						end
+						else if(mem_write_no == 0) begin
+							// $display("pcpi_ready condition: %d", $time);
+							mem_wordsize <= 0;
+							mem_valid <= 0;
+							pcpi_wait <= 0;
+							pcpi_ready <= 1;
+						end
+					end
+					mem_addr <= reg_op1;
+				end
 			endcase
 		end
 		if (set_mem_do_rdata)
