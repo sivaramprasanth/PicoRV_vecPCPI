@@ -123,11 +123,19 @@ module testbench;
 			memory[i] = 32'h 00000093; //NOP
 		
 		//Vl is the number of elements to modify every time
+<<<<<<< HEAD
 		memory[0] = 32'h 01000113; //---> to set vl(o of elements) as 4 (Addi x2,x0,4) 
 		// Ox 00017257
 		memory[1] = 32'b 00000000100000010111001001010111; //Vsetvli x4,x2, LMUL=1 E32 --->  0 00000001000 00010 111 00100 1010111 ---> 00817257 (sew - 32)
 		memory[2] = 32'h 19200093; //addi x1,x0,400
         memory[3] = 32'h 00800393; //addi x7,x0,4  --> Loading the stride
+=======
+		memory[0] = 32'h 00800113; //---> to set vl(o of elements) as 4 (Addi x2,x0,4) 
+		// Ox 00017257
+		memory[1] = 32'b 00000000100000010111001001010111; //Vsetvli x4,x2, LMUL=1 E32 --->  0 00000001000 00010 111 00100 1010111 ---> 00817257 (sew - 32)
+		memory[2] = 32'h 19000093; //addi x1,x0,400
+        memory[3] = 32'h 00400393; //addi x7,x0,4  --> Loading the stride
+>>>>>>> 278fc3216d763ae96c7b1099f0f85e5982c1206c
 		//31 29 28 26 25 24    20 19  15 14 12 11    7 6     0
 		// nf | mop | vm |  rs2 |  rs1 | width |  vd  |0000111| VL* strided
         memory[4] = 32'b 00001010011100001111000010000111; //  000 010 1 00111 00001 111 00001 0000111 vlse.v v1, (x1), x7
@@ -150,14 +158,14 @@ module testbench;
         memory[108] = 32'h 24232221; 
 		memory[109] = 32'h 28272625;
 	
-		memory[110] = 32'h 0000000a;
-        memory[111] = 32'h 00000014;
-		memory[112] = 32'h 0000001e;
-		memory[113] = 32'h 00000028;
-        memory[114] = 32'h 00000032;
-		memory[115] = 32'h 0000003c;
-		memory[116] = 32'h 00000046;
-        memory[117] = 32'h 00000050;
+		memory[110] = 32'h 23222120;
+        memory[111] = 32'h 27262524;
+		memory[112] = 32'h 2b2a2928;
+		memory[113] = 32'h 2f2e2d2c;
+        memory[114] = 32'h 33323130;
+		memory[115] = 32'h 37363534;
+		memory[116] = 32'h 3b3a3938;
+        memory[117] = 32'h 3f3e3d3c;
 		memory[118] = 32'h 0000005a;
 		memory[119] = 32'h 1000000a;
         memory[120] = 32'h 11000014;

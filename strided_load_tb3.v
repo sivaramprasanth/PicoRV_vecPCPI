@@ -123,11 +123,19 @@ module testbench;
 			memory[i] = 32'h 00000093; //NOP
 		
 		//Vl is the number of elements to modify every time
+<<<<<<< HEAD
 		memory[0] = 32'h 01000113; //---> to set vl(o of elements) as 4 (Addi x2,x0,4) 
 		// Ox 00017257
 		memory[1] = 32'b 00000000010000010111001001010111; //Vsetvli x4,x2, LMUL=1 E16 --->  0 00000000100 00010 111 00100 1010111 ---> 00817257 (sew - 32)
 		memory[2] = 32'h 19000093; //addi x1,x0,400
         memory[3] = 32'h 00800393; //addi x7,x0,4  --> Loading the stride
+=======
+		memory[0] = 32'h 00800113; //---> to set vl(o of elements) as 4 (Addi x2,x0,4) 
+		// Ox 00017257
+		memory[1] = 32'b 00000000010000010111001001010111; //Vsetvli x4,x2, LMUL=1 E16 --->  0 00000000100 00010 111 00100 1010111 ---> 00817257 (sew - 32)
+		memory[2] = 32'h 19000093; //addi x1,x0,400
+        memory[3] = 32'h 00400393; //addi x7,x0,4  --> Loading the stride
+>>>>>>> 278fc3216d763ae96c7b1099f0f85e5982c1206c
 		//31 29 28 26 25 24    20 19  15 14 12 11    7 6     0
 		// nf | mop | vm |  rs2 |  rs1 | width |  vd  |0000111| VL* strided
         memory[4] = 32'b 00001010011100001111000010000111; //  000 010 1 00111 00001 111 00001 0000111 vlse.v v1, (x1), x7
@@ -143,6 +151,7 @@ module testbench;
 		memory[101] = 32'h 08070605;
         memory[102] = 32'h 0c0b0a09;
 		memory[103] = 32'h 000f0e0d;
+<<<<<<< HEAD
         memory[104] = 32'h 14131211;
 		memory[105] = 32'h 18171615;
         memory[106] = 32'h 1c1b1a19;
@@ -173,6 +182,24 @@ module testbench;
 		memory[129] = 32'h 2000005a;
 		memory[130] = 32'h 21000050;
 		memory[131] = 32'h 2200005a;
+=======
+        memory[104] = 32'h 0a090807;
+		memory[105] = 32'h 0807060b;
+        memory[106] = 32'h 0c0b0a0c;
+		memory[107] = 32'h 000f0e0d;
+        memory[108] = 32'h 00000009; 
+		memory[109] = 32'h 00000000;
+	
+		memory[110] = 32'h 23222120;
+        memory[111] = 32'h 27262524;
+		memory[112] = 32'h 2b2a2928;
+		memory[113] = 32'h 2f2e2d2c;
+        memory[114] = 32'h 33323130;
+		memory[115] = 32'h 37363534;
+		memory[116] = 32'h 3b3a3938;
+        memory[117] = 32'h 3f3e3d3c;
+		memory[118] = 32'h 0000005a;
+>>>>>>> 278fc3216d763ae96c7b1099f0f85e5982c1206c
 
 		//Vtype reg is 00000000000, vtype[1:0] -> vlmul[1:0] (sets LMUL value)
 		//							vtype[4:2] -> vsew[2:0] (sets SEW value)
