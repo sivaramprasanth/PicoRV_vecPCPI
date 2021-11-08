@@ -26,6 +26,7 @@ module picorv32_pcpi_vec #(
 	output reg [3:0]  mem_wstrb  //For store
 );
 
+	localparam [10:0] flat_reg_len = 512;
 	reg [31:0] reg_op1; //stores the value of pcpi_cpurs1
 	reg [31:0] reg_op2; //stores the value of pcpi_cpurs2
 	reg [31:0] temp_reg; //Used by vstore instruction
@@ -43,7 +44,7 @@ module picorv32_pcpi_vec #(
 	wire mem_busy = |{mem_do_rdata, mem_do_wdata};
 
 	reg [1:0] mem_str_state; //FSM for strided load.
-	reg mem_str_ready;  //Used as the ready signal for strided load instruction
+	reg mem_str_ready, mem_str_ready2;  //Used as the ready signal for strided load instruction
 	reg [1:0] vstore_bit;  //Used to initialize the store instruction
 
 //memory interface 
@@ -53,13 +54,13 @@ module picorv32_pcpi_vec #(
 			// $display("mem_rdata:%x, time:%d",mem_rdata,$time);
 			case (mem_wordsize)
 				0: begin
-					mem_str_ready <= 0;
+					mem_str_ready2 <= 0;
 					if(mem_ready == 1) begin
-						// // $display("Inside mem_interface, mem_wdata:%x, time:%d", vreg_rdata1_latched,$time);
+						// $display("Inside mem_interface, mem_rdata:%x, time:%d", mem_rdata,$time);
 						if(instr_vload || instr_vload_str || instr_vleuvarp || instr_vlesvarp) begin
 							mem_rdata_word <= mem_rdata; //reads 32 bits
 						end
-						mem_str_ready <= 1; //str_ready will be 1 irrespective of the instruction
+						mem_str_ready2 <= 1; //str_ready will be 1 irrespective of the instruction
 					end
 				end
 				1: begin
@@ -382,7 +383,7 @@ module picorv32_pcpi_vec #(
 				3: begin
                    	mem_str_ready <= 0;
 					if(mem_ready == 1) begin
-						// // $display("Inside mem_interface, mem_wdata:%x, time:%d", vreg_rdata1_latched,$time);
+						// $display("Inside mem_interface, mem_wdata:%x, ind1:%d, ind2:%d, time:%d",st_data[ind1 +: 32], ind1, ind2, $time);
 						if(instr_vstore || instr_vstore_str || instr_vsesvarp || instr_vseuvarp) begin
 							mem_wdata <= st_data[ind1 +: 32]; //reads 32 bits
 							mem_wstrb <= st_strb[ind2 +: 4];
@@ -400,13 +401,13 @@ module picorv32_pcpi_vec #(
 	reg instr_vsetvli, instr_vsetvl, instr_vsetprecision; //Vec instrn to set the csr reg values
 	reg instr_vload,instr_vload_str,instr_vstore, instr_vstore_str;   //Vec load and store instr
 	reg instr_vdot,instr_vadd; //For dot product and addition
-	wire is_vec_instr; //To check whether the forwarded instruction to coprocessor is vector instruction or not
+	wire is_vec_instr, is_vap_instr; //To check whether the forwarded instruction to coprocessor is vector instruction or not
 
 	//Instructions for variable bit precision
 	reg instr_vleuvarp, instr_vlesvarp, instr_vseuvarp, instr_vsesvarp;
 	
 	assign is_vec_instr = |{instr_vsetvli,instr_vsetvl,instr_vsetprecision,instr_vload,instr_vload_str, instr_vleuvarp, instr_vlesvarp, instr_vstore, instr_vstore_str, instr_vseuvarp, instr_vsesvarp, instr_vdot,instr_vadd};
-
+	assign is_vap_instr = |{instr_vleuvarp, instr_vlesvarp, instr_vsesvarp, instr_vseuvarp, instr_vsetprecision}; //To heck whether the instruction is variable bit one
 	reg [4:0] decoded_vs1, decoded_vs2, decoded_vd; //For vect instrns
 	reg [10:0] decoded_vimm; //For vect instrns
 
@@ -428,6 +429,7 @@ module picorv32_pcpi_vec #(
 			instr_vadd  <= 0;
 			mem_str_state <= 0; //default value of mem_str_state for strided loads
 			mem_str_ready <= 0; //default value for mem_str_ready
+			mem_str_ready2 <= 0; ////default value for mem_str_ready2
 			vstore_bit <= 2'b00; //Resetting the vstore bit
 			mem_wstrb <= 4'b0;
 		end
@@ -470,6 +472,7 @@ module picorv32_pcpi_vec #(
 	assign SEW  = (4*(2<<vsew));
     wire [6:0] sew_bytes; //No of bytes in a SEW - 1 (Used to calculate final addr for ld and st)
 	wire [1:0] sew_bytes_vap; //No of bytes in a SEW (Used for vap load and store instructions)
+	reg [31:0] str_bits; //Used for vec_str instruction
     assign sew_bytes = ((1<<vsew)-1);  //Used for vector load and store instruction
 	assign sew_bytes_vap = (vap-1) >> 2; //if vap <= 8, it should be 0 else 1
 	wire [31:0]LMUL = (1 << (vlmul)); //No of vector regs in a group (2^vlmul)
@@ -477,6 +480,7 @@ module picorv32_pcpi_vec #(
 
 	//Variables used by vload and vstore
     reg [5:0] mem_read_no; //No of memory reads for load instrn
+	reg [5:0] new_mem_read_no; //Used when no of reads are more
     reg [9:0] init_addr; //Used for vector ld and st
     reg [9:0] final_addr; //Used for vector ld and st
 	reg [5:0] vecldstrcnt;
@@ -488,9 +492,10 @@ module picorv32_pcpi_vec #(
 	reg [2:0] v_enc_width;
 	reg [10:0] v_membits; //Contains the number of bits to be loaded from memory
 	reg [15:0] vecregs_wstrb_temp; //Used to store write strobe
-    reg [511:0] ld_data; //To use flat memory
-	reg [511:0] st_data; //To use flat memory for store
+    reg [flat_reg_len-1:0] ld_data; //To use flat memory
+	reg [flat_reg_len-1:0] st_data; //To use flat memory for store
 	reg [15:0] mem_write_no; //No of memory writes required for vector store
+	reg [15:0] new_mem_write_no;
 	reg [63:0] st_strb; //64 bit strb used for vector store (1 bit is for 1 byte)
     reg [9:0] cnt;
 	reg temp_var = 0; //Used for a reset condition for vector load
@@ -498,6 +503,8 @@ module picorv32_pcpi_vec #(
     reg [9:0] ind1; //Used for vec load
 	reg [5:0] ind2; //Used to index the strb
     reg [5:0] no_words; //No of words to read
+	reg [5:0] new_no_words;
+	reg [5:0] read_count; //Used in ld_mem state
 	reg [4:0] bits_remaining; //Bits remaining after words are loaded
     reg [5:0] temp_count; //Used for indexing (strb in vector regs)
 	reg [4:0] temp_count2; //Used for reading data from vec reg during store
@@ -604,6 +611,7 @@ module picorv32_pcpi_vec #(
 					$display("Inside fetch, pcpi_rs1:%d", pcpi_cpurs1);
 					reg_op1 <= pcpi_cpurs1;
 					reg_op2 <= pcpi_cpurs2;
+					str_bits <= vcsr_vl*pcpi_cpurs2*8;
 					// latched_vstore <= 0;  //latched_vstore will be 1 for 1 clk cycle
 					latched_stalu <= 0;
 					mem_wordsize <= 0; //Has to write/read 32 bit data
@@ -633,10 +641,12 @@ module picorv32_pcpi_vec #(
 							$display("Inside v_load condition, time:%d", $time);
 							cpu_state <= cpu_state_ldmem;
                             init_addr <= reg_op1 >> 2; //Initial word addrr
-                            final_addr <= ((reg_op1 + (vcsr_vl-1)*reg_op2 + sew_bytes) >> 2);  //Calculates the word addr of final byte 
+							//Since unit strided, stride will be 1 i.e reg_op2 will be 1
+                            final_addr <= ((reg_op1 + (vcsr_vl-1) + sew_bytes) >> 2);  //Calculates the word addr of final byte 
 							vecregs_waddr <= decoded_vd;
 							vecregs_raddr1 <= decoded_vs1;
 							mem_str_ready <= 0; //Initial value of mem_str_ready
+							mem_str_ready2 <= 0;
 							mem_str_state <= 2'b00; //Initial state for strided load
 							//Updating mem_bits depending on vcsr_vl and v_enc_width(i.e instr[14:12])
 							v_membits <= vcsr_vl * ((v_enc_width==3'b000)? 8:(v_enc_width==3'b101)?16:(v_enc_width==3'b110)?32:SEW); 
@@ -645,6 +655,10 @@ module picorv32_pcpi_vec #(
 							temp_var <= 0;
                             temp_count <= 0;
                             ind1 <= (reg_op1[1:0] << 3); //byte addr to bit addr, used to read data from ld_data reg
+							reg_op2 <= 1;
+							//This is used when no of mem_reads crosses flat_reg_len bits
+							new_no_words <= (flat_reg_len >> 8)*SEW;  //Derives from { flat_reg_len*SEW / (32*8*stride)} and stride is 1
+							read_count <= 0;
 							//Number of bits to read in each cycle
 							// if(SEW == 10'b0000100000)
 							mem_wordsize = 0;
@@ -657,6 +671,7 @@ module picorv32_pcpi_vec #(
 							vecregs_waddr <= decoded_vd;
 							vecregs_raddr1 <= decoded_vs1;
 							mem_str_ready <= 0; //Initial value of mem_str_ready
+							mem_str_ready2 <= 0;
 							mem_str_state <= 2'b00; //Initial state for strided load
 							//Updating mem_bits depending on vcsr_vl and v_enc_width(i.e instr[14:12])
 							v_membits <= vcsr_vl * ((v_enc_width==3'b000)? 8:(v_enc_width==3'b101)?16:(v_enc_width==3'b110)?32:SEW); 
@@ -665,6 +680,9 @@ module picorv32_pcpi_vec #(
 							temp_var <= 0;
                             temp_count <= 0;
                             ind1 <= (reg_op1[1:0] << 3); //byte addr to bit addr
+							//This is used when no of mem_reads crosses flat_reg_len bits
+							new_no_words <= ((flat_reg_len >> 8)*SEW) / reg_op2;  //Derives from { flat_reg_len*SEW / (32*8*stride) }
+							read_count <= 0;
 							//Number many bits to read in each cycle
 							// if(SEW == 10'b0000100000)
 							mem_wordsize = 0;
@@ -673,10 +691,12 @@ module picorv32_pcpi_vec #(
 							$display("Inside vap_unit_load condition, time:%d", $time);
 							cpu_state <= cpu_state_ldmem;
                             init_addr <= reg_op1 >> 2; //Initial word addrr
-                            final_addr <= ((reg_op1 + (vcsr_vl-1)*reg_op2 + sew_bytes_vap) >> 2);  //Calculates the word addr of final byte 
+							//Since unit strided, stride will be 1 i.e reg_op2 will be 1
+                            final_addr <= ((reg_op1 + (vcsr_vl-1)*1 + sew_bytes_vap) >> 2);  //Calculates the word addr of final byte 
 							vecregs_waddr <= decoded_vd;
 							vecregs_raddr1 <= decoded_vs1;
 							mem_str_ready <= 0; //Initial value of mem_str_ready
+							mem_str_ready2 <= 0;
 							mem_str_state <= 2'b00; //Initial state for strided load
 							//Updating mem_bits depending on vcsr_vl and v_enc_width(i.e instr[14:12])
 							v_membits <= vcsr_vl * ((v_enc_width==3'b000)? 8:(v_enc_width==3'b101)?16:(v_enc_width==3'b110)?32:vap); 
@@ -685,8 +705,10 @@ module picorv32_pcpi_vec #(
 							temp_var <= 0;
                             temp_count <= 0;
                             ind1 <= (reg_op1[1:0] << 3); //byte addr to bit addr
-							//Number of bits to read in each cycle
-							// if(SEW == 10'b0000100000)
+							reg_op2 <= 1;
+							//This is used when no of mem_reads crosses flat_reg_len bits
+							new_no_words <= (flat_reg_len >> 8)*vap;  //Derives from { flat_reg_len*SEW / (32*8*stride) } and stride is 1
+							read_count <= 0;
 							mem_wordsize = 0;
 						end
 						(instr_vlesvarp): begin
@@ -697,6 +719,7 @@ module picorv32_pcpi_vec #(
 							vecregs_waddr <= decoded_vd;
 							vecregs_raddr1 <= decoded_vs1;
 							mem_str_ready <= 0; //Initial value of mem_str_ready
+							mem_str_ready2 <= 0;
 							mem_str_state <= 2'b00; //Initial state for strided load
 							//Updating mem_bits depending on vcsr_vl and v_enc_width(i.e instr[14:12])
 							v_membits <= vcsr_vl * ((v_enc_width==3'b000)? 8:(v_enc_width==3'b101)?16:(v_enc_width==3'b110)?32:vap); 
@@ -705,8 +728,9 @@ module picorv32_pcpi_vec #(
 							temp_var <= 0;
                             temp_count <= 0;
                             ind1 <= (reg_op1[1:0] << 3); //byte addr to bit addr
-							//Number many bits to read in each cycle
-							// if(SEW == 10'b0000100000)
+							//This is used when no of mem_reads crosses flat_reg_len bits
+							new_no_words <= ((flat_reg_len >> 8)*vap) / reg_op2;  //Derives from { flat_reg_len*SEW / (32*8*stride) }
+							read_count <= 0;
 							mem_wordsize = 0;
 						end
 						(instr_vstore): begin
@@ -728,9 +752,13 @@ module picorv32_pcpi_vec #(
 							temp_count2 <= 0;
 							temp_count <= 0;
 							condition_bit <= 0;
-							mem_write_no <= (reg_op2*vcsr_vl) >> 2; //No of mem writes required
-							ind1 <= 0;
-							ind2 <= 0; //Used to index the mem strb
+							mem_write_no <= vcsr_vl >> 2; //No of mem writes required and derived from (reg_op2*vcsr_vl) >> 2 where stride is 1
+							reg_op2 <= 1;
+							// ind1 <= 0;
+							// ind2 <= 0; //Used to index the mem strb
+							//This is used when no of mem_reads crosses flat_reg_len bits
+							new_no_words <= (flat_reg_len >> 8)*SEW;  //Derives from { flat_reg_len*SEW / (32*8*stride) } and stride is 1
+							read_count <= 0;
 							st_data <= 0;
 							st_strb <= 0;
 							mem_wordsize <= 2;
@@ -753,8 +781,11 @@ module picorv32_pcpi_vec #(
 							temp_count <= 0;
 							condition_bit <= 0;
 							mem_write_no <= (reg_op2*vcsr_vl) >> 2;
-							ind1 <= 0; 
-							ind2 <= 0;
+							// ind1 <= 0; 
+							// ind2 <= 0;
+							//This is used when no of mem_reads crosses flat_reg_len bits
+							new_no_words <= ((flat_reg_len >> 8)*SEW) / reg_op2;  //Derives from { flat_reg_len*SEW / (32*8*stride) }
+							read_count <= 0;
 							st_data <= 0;
 							st_strb <= 0;
 							// mem_wordsize <= 2;
@@ -776,9 +807,13 @@ module picorv32_pcpi_vec #(
 							temp_count2 <= 0;
 							temp_count <= 0;
 							condition_bit <= 0;
-							mem_write_no <= (reg_op2*vcsr_vl) >> 2; //No of mem writes required
-							ind1 <= 0;
-							ind2 <= 0; //Used to index the mem strb
+							mem_write_no <= vcsr_vl >> 2; //No of mem writes required
+							reg_op2 <= 1;
+							// ind1 <= 0;
+							// ind2 <= 0; //Used to index the mem strb
+							//This is used when no of mem_reads crosses flat_reg_len bits
+							new_no_words <= (flat_reg_len >> 8)*SEW;  //Derives from { flat_reg_len*SEW / (32*8*stride) }
+							read_count <= 0;
 							st_data <= 0;
 							st_strb <= 0;
 							mem_wordsize <= 2;
@@ -800,9 +835,12 @@ module picorv32_pcpi_vec #(
 							temp_count2 <= 0;
 							temp_count <= 0;
 							condition_bit <= 0;
-							mem_write_no <= (reg_op2*vcsr_vl) >> 2; //No of mem writes required
-							ind1 <= 0;
-							ind2 <= 0; //Used to index the mem strb
+							mem_write_no <= (reg_op2*vcsr_vl) >> 2; //No of mem writes required (vcsr*stride*8/32)
+							// ind1 <= 0;
+							// ind2 <= 0; //Used to index the mem strb
+							//This is used when no of mem_reads crosses flat_reg_len bits
+							new_no_words <= ((flat_reg_len >> 8)*SEW) / reg_op2;  //Derives from { flat_reg_len*SEW / (32*8*stride) }
+							read_count <= 0;
 							st_data <= 0;
 							st_strb <= 0;
 							mem_wordsize <= 2;
@@ -835,49 +873,108 @@ module picorv32_pcpi_vec #(
 				cpu_state_ldmem: begin
                     //Calculate for the first time and make valid as 1 
                     if(temp_var == 0) begin
-						$display("Inside cnt=0 condition, no_words:%d, time: %d", no_words, $time);
+						// $display("Inside cnt=0 condition, mem_read_no:%d, no_words:%d, new_no_words:%d, time: %d",final_addr - init_addr + 1, no_words, new_no_words, $time);
 						bits_remaining <= v_membits[4:0]; //remainder after dividing mem_bits with 32
+						mem_read_no <= final_addr - init_addr + 1; //No of mem_reads required
 						if(v_membits[4:0] > 0)
 							no_words <= no_words+1;
-                       	mem_read_no <= final_addr - init_addr + 1; //No of mem_reads required
+						if(is_vap_instr)
+							new_mem_read_no <= (new_no_words*8*reg_op2) / vap ;
+						else
+							new_mem_read_no <= (new_no_words*8*reg_op2) / SEW ;
 					   	mem_valid <= 1; //Making the valid bit 1 after changing the address for the first time
 						temp_var <= 1; //So that it enters this block only once
                     end
-                    // $display("final_addr: %d, init_addr: %d, No of mem_reads: %d, time:%d",final_addr, init_addr, mem_read_no, $time);
-					if(mem_read_no >= 1) begin
-                        if(mem_ready == 1) begin //This is how memory works
-                            reg_op1 = reg_op1 + 4;
-                        end
-						if((mem_str_ready == 1)) begin 
-                            ld_data[cnt +: 32] <= mem_rdata_word;  //Selects 32 bits starting from cnt
-							$display("Inside mem_addr:%x, mem_rdata: %x, mem_read_no: %d, time:%d",reg_op1, mem_rdata_word, mem_read_no, $time);
-                            mem_read_no <= mem_read_no - 1;
-                            cnt <= cnt + 32;
-							//If we are loading the last word, then go to ldmem2 stage to load the data into vector reg
-							if(mem_read_no == 1) begin
-                                $display("Inside mem_str_ready,no_words:%d, ld_data :%x, time:%d",no_words, ld_data, $time);
-								// if(SEW == 10'b0000100000)
-								//Irrespective of SEW, the mem_wordsize will be 1 (used in mem FSM)
-								mem_wordsize <= 1;
-                                mem_valid <= 0;
-                                mem_str_ready <= 0; //Will be made 1 again in mem_wordsize FSM
-								cpu_state <= cpu_state_ldmem2;
+					if(mem_read_no*32 <= flat_reg_len) begin
+						//New line added
+						ind1 <= (reg_op1[1:0] << 3);
+						// $display("mem_valid:%d, mem_str_ready2:%d, time:%d",mem_valid, mem_str_ready2, $time);
+						if(mem_read_no >= 1) begin
+							if(mem_ready == 1) begin //This is how memory works
+							// $display("Inside mem-ready, time:%d", $time);
+								reg_op1 = reg_op1 + 4;
+							end
+							if((mem_str_ready2 == 1)) begin 
+								ld_data[cnt +: 32] <= mem_rdata_word;  //Selects 32 bits starting from cnt
+								// $display("Inside if mem_addr:%d, mem_rdata: %x, mem_read_no: %d, time:%d",reg_op1>>2, mem_rdata_word, mem_read_no, $time);
+								mem_read_no <= mem_read_no - 1;
+								cnt <= cnt + 32;
+								//If we are loading the last word, then go to ldmem2 stage to load the data into vector reg
+								if(mem_read_no == 1) begin
+									// $display("Inside mem_str_ready2,no_words:%d, ld_data :%x, time:%d",no_words, ld_data, $time);
+									//Irrespective of SEW, the mem_wordsize will be 1 (used in mem FSM)
+									mem_wordsize <= 1;
+									mem_valid <= 0;
+									mem_str_ready2 <= 0; //Will be made 1 again in mem_wordsize FSM
+									mem_str_ready <= 0;  //Will be made 1 again in mem_wordsize FSM
+									cpu_state <= cpu_state_ldmem2;
+								end
+							end
+						end
+					end
+					else begin
+						if(read_count < new_mem_read_no) begin
+							if(mem_ready == 1) begin //This is how memory works
+								reg_op1 = reg_op1 + 4;
+							end
+							if((mem_str_ready2 == 1)) begin 
+								ld_data[cnt +: 32] <= mem_rdata_word;  //Selects 32 bits starting from cnt
+								// $display("Inside else mem_addr:%d, mem_rdata: %x, read_count: %d, time:%d",reg_op1>>2, mem_rdata_word, read_count, $time);
+								read_count <= read_count + 1;
+								cnt <= cnt + 32;
+								//If we are loading the last word, then go to ldmem2 stage to load the data into vector reg
+								if(read_count == new_mem_read_no - 1) begin
+									// $display("Inside read_count state, mem_read_no:%d, read_count :%d, time:%d",mem_read_no - new_mem_read_no, read_count, $time);
+									//Irrespective of SEW, the mem_wordsize will be 1 (used in mem FSM)
+									mem_wordsize <= 1;
+									mem_valid <= 0;
+									mem_str_ready2 <= 0; //Will be made 1 again in mem_wordsize FSM
+									mem_str_ready <= 0;  //Will be made 1 again in mem_wordsize FSM
+									cpu_state <= cpu_state_ldmem2;
+									mem_read_no <= mem_read_no - new_mem_read_no;
+									read_count <= 0;
+									cnt <= 0; //To use the flat memory again for next iteration
+								end
 							end
 						end
 					end
 					mem_addr = reg_op1; //Updating the mem_addr
 				end
                 cpu_state_ldmem2: begin
-                    if(no_words > 0) begin
-                       if(mem_str_ready == 1) begin
-                        //    $display("Inside mem_str_ready, ld_data:%x, mem_rdata:%x, time: %d", ld_data[95:0], mem_rdata_word, $time);
-                            vreg_op1 <= mem_rdata_word;
-                            vecregs_wstrb_temp <= 1 << temp_count; //left shift temp count digits
-                            temp_count <= temp_count+1;
-                            latched_vstore <= 1;
-                            no_words <= no_words-1;
-                        end 
-                    end
+					if(no_words <= new_no_words) begin
+						if(no_words > 0) begin
+							if(mem_str_ready == 1) begin
+							//    $display("Inside if ld_mem2, ld_data:%x, mem_rdata:%x, time: %d", ld_data[95:0], mem_rdata_word, $time);
+								vreg_op1 <= mem_rdata_word;
+								vecregs_wstrb_temp <= 1 << temp_count; //left shift temp count digits
+								temp_count <= temp_count+1;
+								latched_vstore <= 1;
+								no_words <= no_words-1;
+							end 
+						end
+					end
+					else begin
+						if(read_count < new_no_words) begin
+							// $display("Entered else in ld_mem2 state, time:%d", $time);
+							if(mem_str_ready == 1) begin
+							//    $display("Inside else mem_str_ready ld_mem2, ld_data:%x, mem_rdata:%x, time: %d", ld_data[95:0], mem_rdata_word, $time);
+								vreg_op1 <= mem_rdata_word;
+								vecregs_wstrb_temp <= 1 << temp_count; //left shift temp count digits
+								temp_count <= temp_count+1;
+								latched_vstore <= 1;
+								read_count <= read_count+1;									
+								if(read_count == new_no_words-1) begin
+									// $display("Inside read_cnt stage ld_mem2, read_cnt:%d, ind1:%d, time: %d", read_count, (reg_op1[1:0] << 3), $time);
+									mem_wordsize <= 0; //Again read data from main memory and store it in flat register
+									mem_str_ready <= 0; //Will be made 1 again in mem_wordsize FSM
+									cpu_state <= cpu_state_ldmem;
+									no_words <= no_words - new_no_words;
+									read_count <= 0;
+									mem_valid <= 1; //Enabling memory again
+								end
+							end 
+						end
+					end
                     if(no_words == 0) begin
 						// $display("V_membits:%d, bits remaining after words: %d, time:%d", v_membits, bits_remaining, $time);
 						mem_str_ready <= 0; //Will be made 1 again in mem_wordsize FSM
@@ -889,53 +986,108 @@ module picorv32_pcpi_vec #(
 				cpu_state_stmem: begin
                     //Calculate for the first time and make valid as 1 
                     if(temp_var == 0) begin
-						$display("Inside temp_var=0 condition, cnt:%d, no_words:%d, time: %d",cnt, no_words, $time);
+						// $display("Inside cnt=0 condition, mem_read_no:%d, no_words:%d, new_no_words:%d, time: %d",final_addr - init_addr + 1, no_words, new_no_words, $time);
+						bits_remaining <= v_membits[4:0]; //Remainder after dividing mem_bits with 32
 						mem_wordsize <= 2;
 						condition_bit <= 1;
-						bits_remaining <= v_membits[4:0]; //remainder after dividing mem_bits with 32
 						if(v_membits[4:0] > 0)
 							no_words <= no_words+1;
+						if(is_vap_instr) begin
+							if(str_bits[4:0]+vap > (32-cnt[4:0]))    //cnt is the start index to store data in st_data reg
+								mem_write_no <= mem_write_no + 1;
+							new_mem_write_no <= (new_no_words*8*reg_op2) / vap ;
+						end
+						else begin
+							// $display("remaining bits:%d, cnt[4:0]:%d, time:%d", str_bits[4:0], cnt[4:0], $time);
+							if((str_bits[4:0]+SEW) > (32-cnt[4:0]))  begin  //cnt is the start index to store data in st_data reg
+								mem_write_no <= mem_write_no + 1;
+							end
+							new_mem_write_no <= (new_no_words*8*reg_op2) / SEW ;
+						end
 						temp_var <= 1; //So that it enters this block only once
                     end
                     // $display("final_addr: %d, init_addr: %d, No of mem_reads: %d, time:%d",final_addr, init_addr, mem_read_no, $time);
-					if(temp_count2 < no_words) begin
-						if((mem_str_ready == 1)) begin 
-							$display("Inside mem_str_ready, time:%d", $time);
-							temp_count2 <= temp_count2 + 1;
-							condition_bit <= 1;
-							mem_str_ready <= 0;
-							//If we are loading the last word, then go to ldmem2 stage to load the data into vector reg
-							if(temp_count2 == no_words-1) begin
-								//Irrespective of SEW, the mem_wordsize will be 1 (used in mem FSM)
-								mem_wordsize <= 3;
-                                mem_valid <= 1;
-                                mem_str_ready <= 0; //Will be made 1 again in mem_wordsize FSM
-								cpu_state <= cpu_state_stmem2;
+					if(str_bits < flat_reg_len) begin
+						if(read_count < no_words) begin
+							if((mem_str_ready == 1)) begin 
+								$display("Inside if mem_str_ready,, mem_write_no:%d time:%d",mem_write_no, $time);
+								read_count <= read_count + 1;
+								temp_count2 <= temp_count2 + 1;
+								condition_bit <= 1;
+								mem_str_ready <= 0;
+								//If we are loading the last word, then go to stmem2 stage to load the data into vector reg
+								if(read_count == no_words-1) begin
+									//Irrespective of SEW, the mem_wordsize will be 1 (used in mem FSM)
+									ind1 <= 0;
+									ind2 <= 0;
+									mem_wordsize <= 3;
+									mem_valid <= 1;
+									cpu_state <= cpu_state_stmem2;
+								end
 							end
 						end
 					end
-					// else if(temp_count2 == no_words) begin
-					// 	//Remove these
-					// 	temp_count2 <= temp_count2 + 1;
-					// 	$display("st_data: %x, cnt:%d, time: %d", st_data[127:0], cnt, $time);
-					// 	$display("st_strb: %b, time: %d", st_strb, $time);
-					// 	pcpi_wait <= 0;
-					// 	pcpi_ready <= 1;
-					// end
+					else begin
+						if(read_count < new_no_words) begin
+							if((mem_str_ready == 1)) begin 
+								$display("Inside else mem_str_ready, new_mem_write_no:%d time:%d", new_mem_write_no, $time);
+								read_count <= read_count + 1;
+								temp_count2 <= temp_count2 + 1;
+								condition_bit <= 1;
+								mem_str_ready <= 0;
+								//If we are loading the last word, then go to stmem2 stage to load the data into vector reg
+								if(read_count == new_no_words-1) begin
+									//Irrespective of SEW, the mem_wordsize will be 1 (used in mem FSM)
+									ind1 <= 0;
+									ind2 <= 0;
+									mem_wordsize <= 3;
+									mem_valid <= 1;
+									cpu_state <= cpu_state_stmem2;
+									no_words <= no_words - new_no_words;
+									read_count <= 0;
+									str_bits <= str_bits - new_mem_write_no*32;
+								end
+							end
+						end
+					end
 				end
 				cpu_state_stmem2: begin
-					if(mem_str_ready == 1) begin
-						if(mem_write_no >= 1) begin
-							set_mem_do_wdata = 1;
-							reg_op1 <= reg_op1 + 4;
-							mem_write_no <= mem_write_no - 1;
+					if(mem_write_no <= new_mem_write_no) begin
+						// $display("Inside if st_mem2 mem_str_ready, mem_write_no:%d, new_mem_write_no:%d time:%d",mem_write_no, new_mem_write_no, $time);
+						if(mem_str_ready == 1) begin
+							if(mem_write_no >= 1) begin
+								set_mem_do_wdata = 1;
+								reg_op1 <= reg_op1 + 4;
+								mem_write_no <= mem_write_no - 1;
+							end
+							else if(mem_write_no == 0) begin
+								// $display("pcpi_ready condition: %d", $time);
+								mem_wordsize <= 0;
+								mem_valid <= 0;
+								pcpi_wait <= 0;
+								pcpi_ready <= 1;
+								cpu_state <= cpu_state_fetch;
+							end
 						end
-						else if(mem_write_no == 0) begin
-							// $display("pcpi_ready condition: %d", $time);
-							mem_wordsize <= 0;
-							mem_valid <= 0;
-							pcpi_wait <= 0;
-							pcpi_ready <= 1;
+					end
+					else begin
+						// $display("Inside else st_mem2 mem_str_ready, mem_write_no:%d, new_mem_write_no:%d time:%d",mem_write_no, new_mem_write_no, $time);
+						if(mem_str_ready == 1) begin
+							if(read_count < new_mem_write_no) begin
+								read_count <= read_count + 1;
+								set_mem_do_wdata = 1;
+								reg_op1 <= reg_op1 + 4;
+							end
+							else if(read_count == new_mem_write_no) begin
+								// $display("Entered read_count == new_mem_write_no condition, time:%d", $time);
+								cpu_state <= cpu_state_stmem;
+								mem_wordsize <= 2;
+								mem_valid <= 0;
+								mem_str_ready <= 0;
+								read_count <= 0;
+								mem_write_no <= mem_write_no - new_mem_write_no;
+								cnt <= (reg_op1[1:0] << 3); //To use flat memory again for next iteration
+							end
 						end
 					end
 					mem_addr <= reg_op1;

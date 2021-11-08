@@ -129,19 +129,19 @@ module testbench;
         //1000000 00001    00010 111 00000 1011011
         memory[2] = 32'b 10000000000100010111000001011011; //Setting the value of vap as 2
 		// Ox 00017257
-        memory[3] = 32'h 02000113; //Addi x2, x0, 8  (Set Vl as 8)
+        memory[3] = 32'h 02000113; //Addi x2, x0, 8  (Set Vl as 32)
 		memory[4] = 32'b 00000000000000010111001001010111; //Vsetvli x4,x2, LMUL=1 E4 --->  0 00000000000 00010 111 00100 1010111 ---> 00817257 (sew - 4)
 		memory[5] = 32'h 19000093; //addi x1,x0,400
-        memory[6] = 32'h 00200393; //addi x7,x0,1  --> byte offset (stride)
+        memory[6] = 32'h 00300393; //addi x7,x0,1  --> byte offset (stride)
 		//31 30 29 26 25  24 	 20 19  15 14 12 11    7 6     0
 		// 00 | 0000 | vm | 00000 |  rs1 | width |  vd  |1011011| vleu_varp
 		// 00 | 0001 | vm |  rs2  |  rs1 | width |  vd  |1011011| vles_varp
         memory[7] = 32'b 00000110011100001111000011011011; //  00 0001 1 00111 00001 111 00001 1011011 vles_varp.v v1, (x1), x7
-		memory[8] = 32'h 25800093; //addi x1,x0,600
+		// memory[8] = 32'h 25800093; //addi x1,x0,600
 		//31 30 29 26 25  24 	  20 19  15 14 12 11    7 6     0
 		// 01 | 0000 | vm | 00000  |  rs1 | width |  vd  |1011011| vseu_varp
 		// 01 | 0001 | vm |  rs2   |  rs1 | width |  vd  |1011011| vses_varp
-		memory[9] = 32'b 01000110011100001111000011011011; //  01 0001 1 00111 00001 111 00001 1011011 vses_varp.v v1, (x1), x7
+		// memory[9] = 32'b 01000110011100001111000011011011; //  01 0001 1 00111 00001 111 00001 1011011 vses_varp.v v1, (x1), x7
 		
 		//Data in memory to be loaded
 		memory[100] = 32'b 00000100000000110000001000000001;
@@ -164,7 +164,20 @@ module testbench;
 		memory[116] = 32'h 00000046;
         memory[117] = 32'h 00000050;
 		memory[118] = 32'h 0000005a;
-
+		memory[119] = 32'h 1000000a;
+        memory[120] = 32'h 11000014;
+		
+		memory[121] = 32'h 1200000a;
+        memory[122] = 32'h 13000014;
+		memory[123] = 32'h 1400001e;
+		memory[124] = 32'h 15000028;
+        memory[125] = 32'h 16000032;
+		memory[126] = 32'h 1700003c;
+		memory[127] = 32'h 18000046;
+        memory[128] = 32'h 19000050;
+		memory[129] = 32'h 2000005a;
+		memory[130] = 32'h 21000050;
+		memory[131] = 32'h 2200005a;
 		//Vtype reg is 00000000000, vtype[1:0] -> vlmul[1:0] (sets LMUL value)
 		//							vtype[4:2] -> vsew[2:0] (sets SEW value)
 		//							vtype[6:5] -> vdiv[1:0] (used by EDIV extension)

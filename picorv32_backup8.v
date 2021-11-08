@@ -3805,7 +3805,7 @@ module picorv32_pcpi_vec #(
 							mem_write_no <= mem_write_no - 1;
 						end
 						else if(mem_write_no == 0) begin
-							// $display("pcpi_ready condition: %d", $time);
+							// $display("pcpi_ready condition: %d, test:%b", $time, 8/5);
 							mem_wordsize <= 0;
 							mem_valid <= 0;
 							pcpi_wait <= 0;

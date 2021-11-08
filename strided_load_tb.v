@@ -123,18 +123,18 @@ module testbench;
 			memory[i] = 32'h 00000093; //NOP
 		
 		//Vl is the number of elements to modify every time
-		memory[0] = 32'h 00600113; //---> to set vl as 8 (Addi x2,x0,4) 
+		memory[0] = 32'h 00c00113; //---> to set vl as 8 (Addi x2,x0,4) 
 		// Ox 00017257
 		memory[1] = 32'b 00000000000000010111001001010111; //Vsetvli x4,x2, LMUL=1 E8 --->  0 00000000000 00010 111 00100 1010111 ---> 00817257 (sew - 8)
 		memory[2] = 32'h 19000093; //addi x1,x0,400
-        memory[3] = 32'h 00a00393; //addi x7,x0,4  --> byte offset (stride)
+        memory[3] = 32'h 00100393; //addi x7,x0,4  --> byte offset (stride)
 		//31 29 28 26 25 24    20 19  15 14 12 11    7 6     0
 		// nf | mop | vm |  rs2 |  rs1 | width |  vd  |0000111| VL* strided
         memory[4] = 32'b 00001010011100001111000010000111; //  000 010 1 00111 00001 111 00001 0000111 vlse.v v1, (x1), x7
 		memory[5] = 32'h 25800093; //addi x1,x0,600
-        //Strided store instruction with the same stride in x7 i.e 8
+        // Strided store instruction with the same stride in x7 i.e 8
 		memory[6] = 32'b 00001010011100001111000010100111; //  000 010 1 00111 00001 111 00001 0100111 vsse.v v1, (x1), x7
-		// memory[7] = 32'h 32100093; //addi x1,x0,800
+		// memory[7] = 32'h 32000093; //addi x1,x0,800
 		// memory[8] = 32'b 00001010011100001111000010100111; //  000 010 1 00111 00001 111 00001 0100111 vsse.v v1, (x1), x7
 
 		memory[100] = 32'h 04030201;
@@ -157,6 +157,20 @@ module testbench;
 		memory[116] = 32'h 00000046;
         memory[117] = 32'h 00000050;
 		memory[118] = 32'h 0000005a;
+		memory[119] = 32'h 1000000a;
+        memory[120] = 32'h 11000014;
+		
+		memory[121] = 32'h 1200000a;
+        memory[122] = 32'h 13000014;
+		memory[123] = 32'h 1400001e;
+		memory[124] = 32'h 15000028;
+        memory[125] = 32'h 16000032;
+		memory[126] = 32'h 1700003c;
+		memory[127] = 32'h 18000046;
+        memory[128] = 32'h 19000050;
+		memory[129] = 32'h 2000005a;
+		memory[130] = 32'h 21000050;
+		memory[131] = 32'h 2200005a;
 
 		//Vtype reg is 00000000000, vtype[1:0] -> vlmul[1:0] (sets LMUL value)
 		//							vtype[4:2] -> vsew[2:0] (sets SEW value)
