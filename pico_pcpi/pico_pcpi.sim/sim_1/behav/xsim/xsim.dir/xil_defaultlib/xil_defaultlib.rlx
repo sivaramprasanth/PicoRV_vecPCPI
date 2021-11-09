@@ -1,7 +1,0 @@
-0.6
-2019.2
-Nov  6 2019
-21:42:20
-/home/prasanth/Desktop/iiitb/4_year/8-sem/NR-PE/pico_vecPCPI/new_testbench_vec.v,1615797675,verilog,,,,testbench,,,,,,,,
-/home/prasanth/Desktop/iiitb/4_year/8-sem/NR-PE/pico_vecPCPI/pico_pcpi/pico_pcpi.sim/sim_1/behav/xsim/glbl.v,1573089660,verilog,,,,glbl,,,,,,,,
-/home/prasanth/Desktop/iiitb/4_year/8-sem/NR-PE/pico_vecPCPI/picorv32.v,1615796970,verilog,,/home/prasanth/Desktop/iiitb/4_year/8-sem/NR-PE/pico_vecPCPI/new_testbench_vec.v,,picorv32;picorv32_pcpi_div;picorv32_pcpi_fast_mul;picorv32_pcpi_mul;picorv32_pcpi_vec;picorv32_regs;vector_regs,,,,,,,,
