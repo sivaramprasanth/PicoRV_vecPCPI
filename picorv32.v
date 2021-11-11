@@ -736,7 +736,7 @@ module picorv32 #(
 	reg instr_vsetvli,instr_vsetvl,instr_vsetprecision; //Vec instrn to set the csr reg values
 	reg instr_vload,instr_vstore;   //Vec load includes strided also and store instr
 	reg instr_vdot,instr_vadd; //For dot product and addition
-	reg instr_vleuvarp, instr_vlesvarp, instr_vseuvarp, instr_vsesvarp; //Instructions added for vap
+	reg instr_vleuvarp, instr_vlesvarp, instr_vseuvarp, instr_vsesvarp, instr_vaddvarp, instr_vsubvarp, instr_vmulvarp, instr_vdotvarp; //Instructions added for vap
 
 	
 	
@@ -777,7 +777,8 @@ module picorv32 #(
 			instr_getq, instr_setq, instr_retirq, instr_maskirq, instr_waitirq, instr_timer };
 	//For vector instructions
 	assign instr_vec = (WITH_PCPI) && {instr_vload,instr_vstore,instr_vadd,instr_vdot,instr_vsetvli,instr_vsetvl, 
-						instr_vsetprecision, instr_vleuvarp, instr_vlesvarp, instr_vseuvarp, instr_vsesvarp}; //Assigning 1 if it is a vector instrn
+						instr_vsetprecision, instr_vleuvarp, instr_vlesvarp, instr_vseuvarp, instr_vsesvarp,
+						instr_vaddvarp, instr_vsubvarp, instr_vmulvarp, instr_vdotvarp}; //Assigning 1 if it is a vector instrn
 
 //Enable for read_cycle instructions
 	wire is_rdcycle_rdcycleh_rdinstr_rdinstrh;
@@ -863,6 +864,10 @@ module picorv32 #(
 		if (instr_vsesvarp) new_ascii_instr = "instr_vsesvarp";
 		if (instr_vadd)		new_ascii_instr = "vadd";
 		if (instr_vdot)     new_ascii_instr = "vdot";
+		if (instr_vaddvarp) new_ascii_instr = "vaddvarp";
+		if(instr_vsubvarp)  new_ascii_instr = "vsubvarp";
+		if (instr_vmulvarp) new_ascii_instr = "vmulvarp";
+		if (instr_vdotvarp) new_ascii_instr = "vdotvarp";
 	end
 
 	reg [63:0] q_ascii_instr;
@@ -1202,6 +1207,12 @@ module picorv32 #(
 			instr_vsesvarp <= (mem_rdata_q[29:26]==4'b0001 && mem_rdata_q[14:12]==3'b111 && mem_rdata_q[6:0] == 7'b1011011 && mem_rdata_q[31:30] == 2'b01);
 			instr_vdot     <= mem_rdata_q[31:26]==6'b111001 && mem_rdata_q[14:12] == 3'b000 && mem_rdata_q[6:0]==7'b1010111;
 			instr_vadd     <= (mem_rdata_q[31:26]==6'b000000 && mem_rdata_q[14:12] == 3'b000 && mem_rdata_q[6:0]==7'b1010111);
+
+			//Arithmetic instr for vap 
+			instr_vaddvarp <= (mem_rdata_q[31:30] == 2'b11 && mem_rdata_q[29:25]==5'b00000 && mem_rdata_q[14:12] == 3'b000 && mem_rdata_q[6:0]==7'b1011011);
+			instr_vsubvarp <= (mem_rdata_q[31:30] == 2'b11 && mem_rdata_q[29:25]==5'b00001 && mem_rdata_q[14:12] == 3'b000 && mem_rdata_q[6:0]==7'b1011011);
+			instr_vmulvarp <= (mem_rdata_q[31:30] == 2'b11 && mem_rdata_q[29:25]==5'b00010 && mem_rdata_q[14:12] == 3'b000 && mem_rdata_q[6:0]==7'b1011011);
+			// instr_vdotvarp <= (mem_rdata_q[31:30] == 2'b11 && mem_rdata_q[29:25]==5'b00011 && mem_rdata_q[14:12] == 3'b000 && mem_rdata_q[6:0]==7'b1011011);
 			v_enc_width    <= (is_vlo || is_vst)? mem_rdata_q[14:12]:0;
 
 			instr_rdcycle  <= ((mem_rdata_q[6:0] == 7'b1110011 && mem_rdata_q[31:12] == 'b11000000000000000010) ||
@@ -2588,7 +2599,7 @@ module vector_regs (
 	input [4:0] raddr2,
 	input [4:0] raddr3,
 	input port3_en,    //Will be 1 only when we need to read three variables
-	input [15:0] vec_rstrb1, //Currently using ony oe strb for all the reads
+	input [15:0] vec_rstrb1, //Currently using only one strb for all the reads
 	// input [15:0] vec_rstrb2;
 	// input [15:0] vec_rstrb3;
 	input [31:0] wdata,

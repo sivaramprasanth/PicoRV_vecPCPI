@@ -27,6 +27,17 @@ module picorv32_pcpi_vec #(
 );
 
 	localparam [10:0] flat_reg_len = 512;
+	localparam [4:0] no_alus = 16;
+
+	//Used for vector arithmetic instructions
+	localparam p_instr_vadd__vv = 8'h00 ;
+	localparam p_instr_vmul__vv = 8'h01 ;
+	localparam p_instr_vdot__vv = 8'h02 ;
+	localparam p_instr_vmulvarp = 8'h03 ;
+	localparam p_instr_vaddvarp = 8'h04 ;
+	localparam p_instr_vdotvarp = 8'h05 ;
+
+	local param [10:0] alu_reg_len = 512;  //Alu register length used for alu operations
 	reg [31:0] reg_op1; //stores the value of pcpi_cpurs1
 	reg [31:0] reg_op2; //stores the value of pcpi_cpurs2
 	reg [31:0] temp_reg; //Used by vstore instruction
@@ -397,6 +408,85 @@ module picorv32_pcpi_vec #(
 		end
 	end
 
+	//Variables used by Vadd and Vdot
+	reg [1:0] unpack_data; //Used to unpack the data for alu
+	reg [9:0] unpack_index;
+	reg arth_data_ready; //Used to synchronize the data forwarding to ALU
+	reg [alu_reg_len-1:0] opA, opB, opC, alu_out; //Using these registers to unpack the data before sending it to the ALUs
+	reg alu_enb;
+	reg [7:0] micro_exec_instr;
+
+	always @(posedge clk) begin
+		if(pcpi_valid) begin
+			case(unpack_data)
+				0: begin
+					arth_data_ready <= 0;
+					if(instr_vadd) begin
+						vecregs_rstrb1 <= 1 << (temp_count2+1);
+						$display("vecreg_data: %x, cnt:%d, time:%d", vecregs_rdata1, cnt, $time);
+						opA[unpack_index +: 32]  <= vecregs_rdata1[31:0];
+						opB[unpack_index +: 32]  <= vecregs_rdata2[31:0];
+						unpack_index <= unpack_index+32;
+						arth_data_ready <= 1; 
+					end
+					else if(instr_vaddvarp || instr_vsubvarp || instr_vmulvarp) begin
+						vecregs_rstrb1 <= 1 << (temp_count2+1);
+						if(vap == 10'b0000000001) begin
+							$display("vecreg_data: %x, cnt:%d, time:%d", vecregs_rdata1, cnt, $time);
+							//Converting sew of 1 to 8 bits to operate on them
+							opA[unpack_index +: 32]     <= {7'b0,vecregs_rdata1[3],7'b0,vecregs_rdata1[2],7'b0,vecregs_rdata1[1],7'b0,vecregs_rdata1[0]};
+							opA[unpack_index+32 +: 32]  <= {7'b0,vecregs_rdata1[7],7'b0,vecregs_rdata1[6],7'b0,vecregs_rdata1[5],7'b0,vecregs_rdata1[4]};
+							opA[unpack_index+64 +: 32]  <= {7'b0,vecregs_rdata1[11],7'b0,vecregs_rdata1[10],7'b0,vecregs_rdata1[9],7'b0,vecregs_rdata1[8]};
+							opA[unpack_index+96 +: 32]  <= {7'b0,vecregs_rdata1[15],7'b0,vecregs_rdata1[14],7'b0,vecregs_rdata1[13],7'b0,vecregs_rdata1[12]};
+							opA[unpack_index+128 +: 32] <= {7'b0,vecregs_rdata1[19],7'b0,vecregs_rdata1[18],7'b0,vecregs_rdata1[17],7'b0,vecregs_rdata1[16]};
+							opA[unpack_index+160 +: 32] <= {7'b0,vecregs_rdata1[23],7'b0,vecregs_rdata1[22],7'b0,vecregs_rdata1[21],7'b0,vecregs_rdata1[20]};
+							opA[unpack_index+192 +: 32] <= {7'b0,vecregs_rdata1[27],7'b0,vecregs_rdata1[26],7'b0,vecregs_rdata1[25],7'b0,vecregs_rdata1[24]};
+							opA[unpack_index+224 +: 32] <= {7'b0,vecregs_rdata1[31],7'b0,vecregs_rdata1[30],7'b0,vecregs_rdata1[29],7'b0,vecregs_rdata1[28]};
+							opB[unpack_index +: 32]     <= {7'b0,vecregs_rdata2[3],7'b0,vecregs_rdata2[2],7'b0,vecregs_rdata2[1],7'b0,vecregs_rdata2[0]};
+							opB[unpack_index+32 +: 32]  <= {7'b0,vecregs_rdata2[7],7'b0,vecregs_rdata2[6],7'b0,vecregs_rdata2[5],7'b0,vecregs_rdata2[4]};
+							opB[unpack_index+64 +: 32]  <= {7'b0,vecregs_rdata2[11],7'b0,vecregs_rdata2[10],7'b0,vecregs_rdata2[9],7'b0,vecregs_rdata2[8]};
+							opB[unpack_index+96 +: 32]  <= {7'b0,vecregs_rdata2[15],7'b0,vecregs_rdata2[14],7'b0,vecregs_rdata2[13],7'b0,vecregs_rdata2[12]};
+							opB[unpack_index+128 +: 32] <= {7'b0,vecregs_rdata2[19],7'b0,vecregs_rdata2[18],7'b0,vecregs_rdata2[17],7'b0,vecregs_rdata2[16]};
+							opB[unpack_index+160 +: 32] <= {7'b0,vecregs_rdata2[23],7'b0,vecregs_rdata2[22],7'b0,vecregs_rdata2[21],7'b0,vecregs_rdata2[20]};
+							opB[unpack_index+192 +: 32] <= {7'b0,vecregs_rdata2[27],7'b0,vecregs_rdata2[26],7'b0,vecregs_rdata2[25],7'b0,vecregs_rdata2[24]};
+							opB[unpack_index+224 +: 32] <= {7'b0,vecregs_rdata2[31],7'b0,vecregs_rdata2[30],7'b0,vecregs_rdata2[29],7'b0,vecregs_rdata2[28]};
+							unpack_index <= unpack_index+256;
+							arth_data_ready <= 1; 
+						end
+						if(vap == 10'b0000000010) begin
+							$display("vecreg_data: %x, cnt:%d, time:%d", vecregs_rdata1, cnt, $time);
+							opA[unpack_index +: 32]     <= {6'b0,vecregs_rdata1[7:6],6'b0,vecregs_rdata1[5:4],6'b0,vecregs_rdata1[3:2],6'b0,vecregs_rdata1[1:0]};
+							opA[unpack_index+32 +: 32]  <= {6'b0,vecregs_rdata1[15:14],6'b0,vecregs_rdata1[13:12],6'b0,vecregs_rdata1[11:10],6'b0,vecregs_rdata1[9:8]};
+							opA[unpack_index+64 +: 32]  <= {6'b0,vecregs_rdata1[23:22],6'b0,vecregs_rdata1[21:20],6'b0,vecregs_rdata1[19:18],6'b0,vecregs_rdata1[17:16]};
+							opA[unpack_index+96 +: 32]  <= {6'b0,vecregs_rdata1[31:30],6'b0,vecregs_rdata1[29:28],6'b0,vecregs_rdata1[27:26],6'b0,vecregs_rdata1[25:24]};
+							opB[unpack_index +: 32]     <= {6'b0,vecregs_rdata2[7:6],6'b0,vecregs_rdata2[5:4],6'b0,vecregs_rdata2[3:2],6'b0,vecregs_rdata2[1:0]};
+							opB[unpack_index+32 +: 32]  <= {6'b0,vecregs_rdata2[15:14],6'b0,vecregs_rdata2[13:12],6'b0,vecregs_rdata2[11:10],6'b0,vecregs_rdata2[9:8]};
+							opB[unpack_index+64 +: 32]  <= {6'b0,vecregs_rdata2[23:22],6'b0,vecregs_rdata2[21:20],6'b0,vecregs_rdata2[19:18],6'b0,vecregs_rdata2[17:16]};
+							opB[unpack_index+96 +: 32]  <= {6'b0,vecregs_rdata2[31:30],6'b0,vecregs_rdata2[29:28],6'b0,vecregs_rdata2[27:26],6'b0,vecregs_rdata2[25:24]};
+							unpack_index <= unpack_index+128;
+							arth_data_ready <= 1; 
+						end
+						if(vap == 10'b0000000100) begin
+							$display("vecreg_data: %x, cnt:%d, time:%d", vecregs_rdata1, cnt, $time);
+							opA[unpack_index +: 32]     <= {4'b0,vecregs_rdata1[15:12],4'b0,vecregs_rdata1[11:8],4'b0,vecregs_rdata1[7:4],4'b0,vecregs_rdata1[3:0]};
+							opA[unpack_index+32 +: 32]  <= {4'b0,vecregs_rdata1[31:28],4'b0,vecregs_rdata1[27:24],4'b0,vecregs_rdata1[23:20],4'b0,vecregs_rdata1[19:16]};
+							opB[unpack_index +: 32]     <= {4'b0,vecregs_rdata2[15:12],4'b0,vecregs_rdata2[11:8],4'b0,vecregs_rdata2[7:4],4'b0,vecregs_rdata2[3:0]};
+							opB[unpack_index+32 +: 32]  <= {4'b0,vecregs_rdata2[31:28],4'b0,vecregs_rdata2[27:24],4'b0,vecregs_rdata2[23:20],4'b0,vecregs_rdata2[19:16]};
+							unpack_index <= unpack_index+128;
+							arth_data_ready <= 1; 
+						end
+						else if(vap == 10'b0000001000) begin
+							$display("vecreg_data: %x, cnt:%d, time:%d", vecregs_rdata1, cnt, $time);
+							opA[unpack_index +: 32]  <= vecregs_rdata1[31:0];
+							opB[unpack_index +: 32]  <= vecregs_rdata2[31:0];
+							unpack_index <= unpack_index+32;
+							arth_data_ready <= 1; 
+						end
+					end
+				end
+			endcase
+		end
+	end
 	//Instruction decoder
 	reg instr_vsetvli, instr_vsetvl, instr_vsetprecision; //Vec instrn to set the csr reg values
 	reg instr_vload,instr_vload_str,instr_vstore, instr_vstore_str;   //Vec load and store instr
@@ -404,10 +494,11 @@ module picorv32_pcpi_vec #(
 	wire is_vec_instr, is_vap_instr; //To check whether the forwarded instruction to coprocessor is vector instruction or not
 
 	//Instructions for variable bit precision
-	reg instr_vleuvarp, instr_vlesvarp, instr_vseuvarp, instr_vsesvarp;
+	reg instr_vleuvarp, instr_vlesvarp, instr_vseuvarp, instr_vsesvarp, instr_vaddvarp, instr_vsubvarp, instr_vmulvarp, instr_vdotvarp;
 	
-	assign is_vec_instr = |{instr_vsetvli,instr_vsetvl,instr_vsetprecision,instr_vload,instr_vload_str, instr_vleuvarp, instr_vlesvarp, instr_vstore, instr_vstore_str, instr_vseuvarp, instr_vsesvarp, instr_vdot,instr_vadd};
-	assign is_vap_instr = |{instr_vleuvarp, instr_vlesvarp, instr_vsesvarp, instr_vseuvarp, instr_vsetprecision}; //To heck whether the instruction is variable bit one
+	assign is_vec_instr = |{instr_vsetvli,instr_vsetvl,instr_vsetprecision,instr_vload,instr_vload_str, instr_vleuvarp, instr_vlesvarp, instr_vstore, instr_vstore_str, instr_vseuvarp,
+							instr_vsesvarp, instr_vdot, instr_vadd, instr_vaddvarp, instr_vsubvarp, instr_vmulvarp, instr_vdotvarp};
+	assign is_vap_instr = |{instr_vleuvarp, instr_vlesvarp, instr_vsesvarp, instr_vseuvarp, instr_vsetprecision, instr_vaddvarp, instr_vsubvarp, instr_vmulvarp, instr_vdotvarp}; //To heck whether the instruction is variable bit one
 	reg [4:0] decoded_vs1, decoded_vs2, decoded_vd; //For vect instrns
 	reg [10:0] decoded_vimm; //For vect instrns
 
@@ -427,11 +518,18 @@ module picorv32_pcpi_vec #(
 			instr_vsesvarp <= 0;
 			instr_vdot  <= 0;
 			instr_vadd  <= 0;
+			instr_vaddvarp <= 0;
+			instr_vsubvarp <= 0;
+			instr_vmulvarp <= 0;
+			instr_vdotvarp <= 0;
 			mem_str_state <= 0; //default value of mem_str_state for strided loads
 			mem_str_ready <= 0; //default value for mem_str_ready
 			mem_str_ready2 <= 0; ////default value for mem_str_ready2
 			vstore_bit <= 2'b00; //Resetting the vstore bit
 			mem_wstrb <= 4'b0;
+			unpack_index <= 0;
+			unpack_data <= 0; //Used in case statement
+			arth_data_ready <= 0;
 		end
 		else begin
 			// $display("Inside decode stage, instrn: %x, time: %d", pcpi_insn, $time);
@@ -453,6 +551,11 @@ module picorv32_pcpi_vec #(
 			instr_vsetprecision <= (pcpi_insn[14:12]==3'b111 && pcpi_insn[6:0] == 7'b1011011 && pcpi_insn[31:25] == 7'b1000000);
 			instr_vdot    <= (pcpi_insn[31:26]==6'b111001) && (pcpi_insn[14:12] == 3'b000) && (pcpi_insn[6:0]==7'b1010111);
 			instr_vadd    <= (pcpi_insn[31:26]==6'b000000) && (pcpi_insn[14:12] == 3'b000) && (pcpi_insn[6:0]==7'b1010111);
+			//Arithmetic instr for vap
+			instr_vaddvarp <= (pcpi_insn[29:25]==5'b00000 && pcpi_insn[14:12]==3'b000 && pcpi_insn[6:0] == 7'b1011011 && pcpi_insn[31:30] == 2'b11);
+			instr_vsubvarp <= (pcpi_insn[29:25]==5'b00001 && pcpi_insn[14:12]==3'b000 && pcpi_insn[6:0] == 7'b1011011 && pcpi_insn[31:30] == 2'b11);
+			instr_vmulvarp <= (pcpi_insn[29:25]==5'b00010 && pcpi_insn[14:12]==3'b000 && pcpi_insn[6:0] == 7'b1011011 && pcpi_insn[31:30] == 2'b11);
+			instr_vdotvarp <= (pcpi_insn[29:25]==5'b00011 && pcpi_insn[14:12]==3'b000 && pcpi_insn[6:0] == 7'b1011011 && pcpi_insn[31:30] == 2'b11);
 			v_enc_width   <= (instr_vload || instr_vstore || instr_vload_str || instr_vstore_str || instr_vleuvarp || instr_vlesvarp || instr_vseuvarp || instr_vsesvarp)? pcpi_insn[14:12]:0;
 		end
 	end
@@ -509,12 +612,14 @@ module picorv32_pcpi_vec #(
     reg [5:0] temp_count; //Used for indexing (strb in vector regs)
 	reg [4:0] temp_count2; //Used for reading data from vec reg during store
 	//Variables used by Vadd and Vdot
-	reg [7:0] elem_n;
+	wire done1, done2, done3, done4, done5, done6, done7, done8, done9, done10, done11, done12, done13, done14, done15, done16;
+	wire alu_done; //Used to check whether all the ALUs have returned the outputs or not
+	assign alu_done = &{done1, done2, done3, done4, done5, done6, done7, done8, done9, done10, done11, done12, done13, done14, done15, done16};
+	reg [9:0] elem_n; //Maximum no of elements is 512 if SEW is 1
 	reg [31:0] vecrs1;
 	reg [31:0] vecrs2;
 	reg [31:0] vecrs3; //For dit product
 	reg [31:0] vecrd;
-	reg [511:0] valu_out; //Stores the output of ALU
 
 	reg set_mem_do_rdata;
 	reg set_mem_do_wdata;
@@ -571,7 +676,7 @@ module picorv32_pcpi_vec #(
 			latched_vstore: begin
 				if(!instr_vstore && !instr_vstore_str) begin //If the instr is not store
 					vecregs_wstrb <= vecregs_wstrb_temp;
-					vecregs_wdata <= latched_stalu ? valu_out:vreg_op1;
+					vecregs_wdata <= latched_stalu ? alu_out:vreg_op1;
 					vecregs_write <= 1;  //wen for load instruction
 				end
 			end
@@ -598,6 +703,7 @@ module picorv32_pcpi_vec #(
 			mem_do_wdata <= 0;
 			vecregs_rstrb1 <= 16'b0;
 			vecregs_wstrb_temp <= 16'b0;
+			elem_n <= 0;
 		end
 		else begin
 			pcpi_wait <= 1;
@@ -846,26 +952,34 @@ module picorv32_pcpi_vec #(
 							mem_wordsize <= 2;
 						end
 						(instr_vadd): begin
-							vecregs_waddr = decoded_vd;
-							vecregs_raddr1 = decoded_vs1;
-							vecregs_raddr2 = decoded_vs2;
-							// vreg_op1 <= vecregs_rdata1;
-							// vreg_op2 <= vecregs_rdata2;
-							elem_n = 0;
-							v_membits <= vcsr_vl * ((v_enc_width==3'b000)? 8:(v_enc_width==3'b101)?16:(v_enc_width==3'b110)?32:SEW); 
 							cpu_state <= cpu_state_exec;
+							micro_exec_instr <= p_instr_vadd__vv;
+							vecregs_waddr <= decoded_vd;
+							vecregs_raddr1 <= decoded_vs1;
+							vecregs_raddr2 <= decoded_vs2;
+							vecregs_rstrb1 <= 16'b1;  //To read the first word
+							arth_data_ready <= 0; //Initial value of mem_str_ready
+							unpack_data <= 0;
+							elem_n <= 0;
+							temp_var <= 0;
+							no_words <= ((vcsr_vl*SEW)>>5); //No of words to read from vec reg
+							read_count <= 0;
+							v_membits <= vcsr_vl * ((v_enc_width==3'b000)? 8:(v_enc_width==3'b101)?16:(v_enc_width==3'b110)?32:SEW); 
 						end
 						(instr_vdot): begin
+							cpu_state <= cpu_state_exec;
+							micro_exec_instr <= p_instr_vdot__vv;
 							vecregs_waddr = decoded_vd;
 							vecregs_raddr1 = decoded_vs1;
 							vecregs_raddr2 = decoded_vs2;
 							vecregs_raddr3 = decoded_vd; //For dot product
+							arth_data_ready <= 0;
+							unpack_data <= 1;  //We have to read three registers here 
 							// vreg_op1 <= vecregs_rdata1;
 							// vreg_op2 <= vecregs_rdata2;
 							// vreg_op3 <= vecregs_rdata3; //Used for dot product
 							elem_n = 0;
 							v_membits <= vcsr_vl * ((v_enc_width==3'b000)? 8:(v_enc_width==3'b101)?16:(v_enc_width==3'b110)?32:SEW); 
-							cpu_state <= cpu_state_exec;
 						end
 					endcase
 				end 
@@ -988,7 +1102,7 @@ module picorv32_pcpi_vec #(
                     if(temp_var == 0) begin
 						// $display("Inside cnt=0 condition, mem_read_no:%d, no_words:%d, new_no_words:%d, time: %d",final_addr - init_addr + 1, no_words, new_no_words, $time);
 						bits_remaining <= v_membits[4:0]; //Remainder after dividing mem_bits with 32
-						mem_wordsize <= 2;
+						// mem_wordsize <= 2;
 						condition_bit <= 1;
 						if(v_membits[4:0] > 0)
 							no_words <= no_words+1;
@@ -1010,7 +1124,7 @@ module picorv32_pcpi_vec #(
 					if(str_bits < flat_reg_len) begin
 						if(read_count < no_words) begin
 							if((mem_str_ready == 1)) begin 
-								$display("Inside if mem_str_ready,, mem_write_no:%d time:%d",mem_write_no, $time);
+								$display("Inside if mem_str_ready, mem_write_no:%d time:%d",mem_write_no, $time);
 								read_count <= read_count + 1;
 								temp_count2 <= temp_count2 + 1;
 								condition_bit <= 1;
@@ -1092,6 +1206,39 @@ module picorv32_pcpi_vec #(
 					end
 					mem_addr <= reg_op1;
 				end
+				cpu_state_exec: begin
+					if(temp_var == 0) begin
+						// $display("Inside cnt=0 condition, mem_read_no:%d, no_words:%d, new_no_words:%d, time: %d",final_addr - init_addr + 1, no_words, new_no_words, $time);
+						bits_remaining <= v_membits[4:0]; //Remainder after dividing mem_bits with 32
+						// condition_bit <= 1;
+						if(v_membits[4:0] > 0)
+							no_words <= no_words+1;
+						temp_var <= 1; //So that it enters this block only once
+                    end
+					else begin
+						if(read_count < no_words) begin
+							if((arth_data_ready == 1)) begin 
+								alu_enb <= 1;
+								$display("Inside if arth_data_ready, unpacked data A: %x, unpacked data B: %x, time:%d",opA, opB, $time);
+								read_count <= read_count + 1;
+								temp_count2 <= temp_count2 + 1;
+								// condition_bit <= 1;
+								arth_data_ready <= 0;
+							end
+						end
+						if(read_count == no_words) begin
+							if(alu_done) begin
+								$display("alu_out:%x, time:%d", alu_out, $time);
+								latched_vstore <= 0; //Should be 1
+								alu_enb <= 0;
+								mem_wordsize <= 0;
+								pcpi_wait <= 0;
+								pcpi_ready <= 1;
+								cpu_state <= cpu_state_fetch;
+							end
+						end
+					end
+				end
 			endcase
 		end
 		if (set_mem_do_rdata)
@@ -1099,4 +1246,23 @@ module picorv32_pcpi_vec #(
 		if (set_mem_do_wdata)
 			mem_do_wdata <= 1;
 	end
+
+ 	vector_processing_element pe1(.clk(clk),.reset(reset),.instruction(micro_exec_instr),.start(alu_enb),.done(done1),.opA(opA[511:480]),.opB(opB[511:480]),.opC(opC[511:480]),.peout(alu_out[511:480]),.SEW(SEW),.vap(vap));
+    vector_processing_element pe2(.clk(clk),.reset(reset),.instruction(micro_exec_instr),.start(alu_enb),.done(done2),.opA(opA[479:448]),.opB(opB[479:448]),.opC(opC[479:448]),.peout(alu_out[479:448]),.SEW(SEW),.vap(vap));
+    vector_processing_element pe3(.clk(clk),.reset(reset),.instruction(micro_exec_instr),.start(alu_enb),.done(done3),.opA(opA[447:416]),.opB(opB[447:416]),.opC(opC[447:416]),.peout(alu_out[447:416]),.SEW(SEW),.vap(vap));
+    vector_processing_element pe4(.clk(clk),.reset(reset),.instruction(micro_exec_instr),.start(alu_enb),.done(done4),.opA(opA[415:384]),.opB(opB[415:384]),.opC(opC[415:384]),.peout(alu_out[415:384]),.SEW(SEW),.vap(vap));
+    vector_processing_element pe5(.clk(clk),.reset(reset),.instruction(micro_exec_instr),.start(alu_enb),.done(done5),.opA(opA[383:352]),.opB(opB[383:352]),.opC(opC[383:352]),.peout(alu_out[383:352]),.SEW(SEW),.vap(vap));
+    vector_processing_element pe6(.clk(clk),.reset(reset),.instruction(micro_exec_instr),.start(alu_enb),.done(done6),.opA(opA[351:320]),.opB(opB[351:320]),.opC(opC[351:320]),.peout(alu_out[351:320]),.SEW(SEW),.vap(vap));
+    vector_processing_element pe7(.clk(clk),.reset(reset),.instruction(micro_exec_instr),.start(alu_enb),.done(done7),.opA(opA[319:288]),.opB(opB[319:288]),.opC(opC[319:288]),.peout(alu_out[319:288]),.SEW(SEW),.vap(vap));
+    vector_processing_element pe8(.clk(clk),.reset(reset),.instruction(micro_exec_instr),.start(alu_enb),.done(done8),.opA(opA[287:256]),.opB(opB[287:256]),.opC(opC[287:256]),.peout(alu_out[287:256]),.SEW(SEW),.vap(vap));
+    vector_processing_element pe9(.clk(clk),.reset(reset),.instruction(micro_exec_instr),.start(alu_enb),.done(done9),.opA(opA[255:224]),.opB(opB[255:224]),.opC(opC[255:224]),.peout(alu_out[255:224]),.SEW(SEW),.vap(vap));
+    vector_processing_element pe10(.clk(clk),.reset(reset),.instruction(micro_exec_instr),.start(alu_enb),.done(done10),.opA(opA[223:192]),.opB(opB[223:192]),.opC(opC[223:192]),.peout(alu_out[223:192]),.SEW(SEW),.vap(vap));
+    vector_processing_element pe11(.clk(clk),.reset(reset),.instruction(micro_exec_instr),.start(alu_enb),.done(done11),.opA(opA[191:160]),.opB(opB[191:160]),.opC(opC[191:160]),.peout(alu_out[191:160]),.SEW(SEW),.vap(vap));
+    vector_processing_element pe12(.clk(clk),.reset(reset),.instruction(micro_exec_instr),.start(alu_enb),.done(done12),.opA(opA[159:128]),.opB(opB[159:128]),.opC(opC[159:128]),.peout(alu_out[159:128]),.SEW(SEW),.vap(vap));
+    vector_processing_element pe13(.clk(clk),.reset(reset),.instruction(micro_exec_instr),.start(alu_enb),.done(done13),.opA(opA[127:96]),.opB(opB[127:96]),.opC(opC[127:96]),.peout(alu_out[127:96]),.SEW(SEW),.vap(vap));
+    vector_processing_element pe14(.clk(clk),.reset(reset),.instruction(micro_exec_instr),.start(alu_enb),.done(done14),.opA(opA[95:64]),.opB(opB[95:64]),.opC(opC[95:64]),.peout(alu_out[95:64]),.SEW(SEW),.vap(vap));
+    vector_processing_element pe15(.clk(clk),.reset(reset),.instruction(micro_exec_instr),.start(alu_enb),.done(done15),.opA(opA[63:32]),.opB(opB[63:32]),.opC(opC[63:32]),.peout(alu_out[63:32]),.SEW(SEW),.vap(vap));
+    vector_processing_element pe16(.clk(clk),.reset(reset),.instruction(micro_exec_instr),.start(alu_enb),.done(done16),.opA(opA[31:0]),.opB(opB[31:0]),.opC(opC[31:0]),.peout(alu_out[31:0]),.SEW(SEW),.vap(vap));
+
+
 endmodule
