@@ -12,7 +12,7 @@ module vector_processing_element(
     input [31:0] opC,
     output reg [31:0] peout, //The final output
 
-	input [31:0] SEW,
+	input [9:0] SEW,
 	input [3:0 ] vap
 );
 
@@ -30,7 +30,7 @@ always @(posedge clk) begin
         done = 0;
     end
     else begin
-       if(instruction == instr_vadd__vv) begin
+       if(instruction == p_instr_vadd__vv) begin
             if(SEW == 32) begin
                 peout <= opA + opB;  //SEW is 32
                 done <= 1;

@@ -37,7 +37,7 @@ module picorv32_pcpi_vec #(
 	localparam p_instr_vaddvarp = 8'h04 ;
 	localparam p_instr_vdotvarp = 8'h05 ;
 
-	local param [10:0] alu_reg_len = 512;  //Alu register length used for alu operations
+	localparam [10:0] alu_reg_len = 512;  //Alu register length used for alu operations
 	reg [31:0] reg_op1; //stores the value of pcpi_cpurs1
 	reg [31:0] reg_op2; //stores the value of pcpi_cpurs2
 	reg [31:0] temp_reg; //Used by vstore instruction
@@ -243,7 +243,7 @@ module picorv32_pcpi_vec #(
 								cnt <= cnt + 8*reg_op2;
 								mem_str_ready <= 1; 
 							end
-							condition_bit = 0;
+							condition_bit <= 0;
 						end
 						else if(instr_vseuvarp || instr_vsesvarp) begin
 							//SEW is 1
@@ -387,7 +387,7 @@ module picorv32_pcpi_vec #(
 								cnt <= cnt + 4*8*reg_op2;
 								mem_str_ready <= 1; 
 							end
-							condition_bit = 0;
+							condition_bit <= 0;
 						end
 					end
 				end
@@ -412,75 +412,80 @@ module picorv32_pcpi_vec #(
 	reg [1:0] unpack_data; //Used to unpack the data for alu
 	reg [9:0] unpack_index;
 	reg arth_data_ready; //Used to synchronize the data forwarding to ALU
-	reg [alu_reg_len-1:0] opA, opB, opC, alu_out; //Using these registers to unpack the data before sending it to the ALUs
+	reg [alu_reg_len-1:0] opA, opB, opC; //Using these registers to unpack the data before sending it to the ALUs
+	wire [alu_reg_len-1:0] alu_out;
 	reg alu_enb;
 	reg [7:0] micro_exec_instr;
 
 	always @(posedge clk) begin
 		if(pcpi_valid) begin
 			case(unpack_data)
-				0: begin
-					arth_data_ready <= 0;
-					if(instr_vadd) begin
-						vecregs_rstrb1 <= 1 << (temp_count2+1);
-						$display("vecreg_data: %x, cnt:%d, time:%d", vecregs_rdata1, cnt, $time);
-						opA[unpack_index +: 32]  <= vecregs_rdata1[31:0];
-						opB[unpack_index +: 32]  <= vecregs_rdata2[31:0];
-						unpack_index <= unpack_index+32;
-						arth_data_ready <= 1; 
-					end
-					else if(instr_vaddvarp || instr_vsubvarp || instr_vmulvarp) begin
-						vecregs_rstrb1 <= 1 << (temp_count2+1);
-						if(vap == 10'b0000000001) begin
-							$display("vecreg_data: %x, cnt:%d, time:%d", vecregs_rdata1, cnt, $time);
-							//Converting sew of 1 to 8 bits to operate on them
-							opA[unpack_index +: 32]     <= {7'b0,vecregs_rdata1[3],7'b0,vecregs_rdata1[2],7'b0,vecregs_rdata1[1],7'b0,vecregs_rdata1[0]};
-							opA[unpack_index+32 +: 32]  <= {7'b0,vecregs_rdata1[7],7'b0,vecregs_rdata1[6],7'b0,vecregs_rdata1[5],7'b0,vecregs_rdata1[4]};
-							opA[unpack_index+64 +: 32]  <= {7'b0,vecregs_rdata1[11],7'b0,vecregs_rdata1[10],7'b0,vecregs_rdata1[9],7'b0,vecregs_rdata1[8]};
-							opA[unpack_index+96 +: 32]  <= {7'b0,vecregs_rdata1[15],7'b0,vecregs_rdata1[14],7'b0,vecregs_rdata1[13],7'b0,vecregs_rdata1[12]};
-							opA[unpack_index+128 +: 32] <= {7'b0,vecregs_rdata1[19],7'b0,vecregs_rdata1[18],7'b0,vecregs_rdata1[17],7'b0,vecregs_rdata1[16]};
-							opA[unpack_index+160 +: 32] <= {7'b0,vecregs_rdata1[23],7'b0,vecregs_rdata1[22],7'b0,vecregs_rdata1[21],7'b0,vecregs_rdata1[20]};
-							opA[unpack_index+192 +: 32] <= {7'b0,vecregs_rdata1[27],7'b0,vecregs_rdata1[26],7'b0,vecregs_rdata1[25],7'b0,vecregs_rdata1[24]};
-							opA[unpack_index+224 +: 32] <= {7'b0,vecregs_rdata1[31],7'b0,vecregs_rdata1[30],7'b0,vecregs_rdata1[29],7'b0,vecregs_rdata1[28]};
-							opB[unpack_index +: 32]     <= {7'b0,vecregs_rdata2[3],7'b0,vecregs_rdata2[2],7'b0,vecregs_rdata2[1],7'b0,vecregs_rdata2[0]};
-							opB[unpack_index+32 +: 32]  <= {7'b0,vecregs_rdata2[7],7'b0,vecregs_rdata2[6],7'b0,vecregs_rdata2[5],7'b0,vecregs_rdata2[4]};
-							opB[unpack_index+64 +: 32]  <= {7'b0,vecregs_rdata2[11],7'b0,vecregs_rdata2[10],7'b0,vecregs_rdata2[9],7'b0,vecregs_rdata2[8]};
-							opB[unpack_index+96 +: 32]  <= {7'b0,vecregs_rdata2[15],7'b0,vecregs_rdata2[14],7'b0,vecregs_rdata2[13],7'b0,vecregs_rdata2[12]};
-							opB[unpack_index+128 +: 32] <= {7'b0,vecregs_rdata2[19],7'b0,vecregs_rdata2[18],7'b0,vecregs_rdata2[17],7'b0,vecregs_rdata2[16]};
-							opB[unpack_index+160 +: 32] <= {7'b0,vecregs_rdata2[23],7'b0,vecregs_rdata2[22],7'b0,vecregs_rdata2[21],7'b0,vecregs_rdata2[20]};
-							opB[unpack_index+192 +: 32] <= {7'b0,vecregs_rdata2[27],7'b0,vecregs_rdata2[26],7'b0,vecregs_rdata2[25],7'b0,vecregs_rdata2[24]};
-							opB[unpack_index+224 +: 32] <= {7'b0,vecregs_rdata2[31],7'b0,vecregs_rdata2[30],7'b0,vecregs_rdata2[29],7'b0,vecregs_rdata2[28]};
-							unpack_index <= unpack_index+256;
-							arth_data_ready <= 1; 
-						end
-						if(vap == 10'b0000000010) begin
-							$display("vecreg_data: %x, cnt:%d, time:%d", vecregs_rdata1, cnt, $time);
-							opA[unpack_index +: 32]     <= {6'b0,vecregs_rdata1[7:6],6'b0,vecregs_rdata1[5:4],6'b0,vecregs_rdata1[3:2],6'b0,vecregs_rdata1[1:0]};
-							opA[unpack_index+32 +: 32]  <= {6'b0,vecregs_rdata1[15:14],6'b0,vecregs_rdata1[13:12],6'b0,vecregs_rdata1[11:10],6'b0,vecregs_rdata1[9:8]};
-							opA[unpack_index+64 +: 32]  <= {6'b0,vecregs_rdata1[23:22],6'b0,vecregs_rdata1[21:20],6'b0,vecregs_rdata1[19:18],6'b0,vecregs_rdata1[17:16]};
-							opA[unpack_index+96 +: 32]  <= {6'b0,vecregs_rdata1[31:30],6'b0,vecregs_rdata1[29:28],6'b0,vecregs_rdata1[27:26],6'b0,vecregs_rdata1[25:24]};
-							opB[unpack_index +: 32]     <= {6'b0,vecregs_rdata2[7:6],6'b0,vecregs_rdata2[5:4],6'b0,vecregs_rdata2[3:2],6'b0,vecregs_rdata2[1:0]};
-							opB[unpack_index+32 +: 32]  <= {6'b0,vecregs_rdata2[15:14],6'b0,vecregs_rdata2[13:12],6'b0,vecregs_rdata2[11:10],6'b0,vecregs_rdata2[9:8]};
-							opB[unpack_index+64 +: 32]  <= {6'b0,vecregs_rdata2[23:22],6'b0,vecregs_rdata2[21:20],6'b0,vecregs_rdata2[19:18],6'b0,vecregs_rdata2[17:16]};
-							opB[unpack_index+96 +: 32]  <= {6'b0,vecregs_rdata2[31:30],6'b0,vecregs_rdata2[29:28],6'b0,vecregs_rdata2[27:26],6'b0,vecregs_rdata2[25:24]};
-							unpack_index <= unpack_index+128;
-							arth_data_ready <= 1; 
-						end
-						if(vap == 10'b0000000100) begin
-							$display("vecreg_data: %x, cnt:%d, time:%d", vecregs_rdata1, cnt, $time);
-							opA[unpack_index +: 32]     <= {4'b0,vecregs_rdata1[15:12],4'b0,vecregs_rdata1[11:8],4'b0,vecregs_rdata1[7:4],4'b0,vecregs_rdata1[3:0]};
-							opA[unpack_index+32 +: 32]  <= {4'b0,vecregs_rdata1[31:28],4'b0,vecregs_rdata1[27:24],4'b0,vecregs_rdata1[23:20],4'b0,vecregs_rdata1[19:16]};
-							opB[unpack_index +: 32]     <= {4'b0,vecregs_rdata2[15:12],4'b0,vecregs_rdata2[11:8],4'b0,vecregs_rdata2[7:4],4'b0,vecregs_rdata2[3:0]};
-							opB[unpack_index+32 +: 32]  <= {4'b0,vecregs_rdata2[31:28],4'b0,vecregs_rdata2[27:24],4'b0,vecregs_rdata2[23:20],4'b0,vecregs_rdata2[19:16]};
-							unpack_index <= unpack_index+128;
-							arth_data_ready <= 1; 
-						end
-						else if(vap == 10'b0000001000) begin
+				1: begin
+					if(condition_bit == 1) begin
+						arth_data_ready <= 0;
+						if(instr_vadd) begin
+							vecregs_rstrb1 <= 1 << (temp_count2+1);
 							$display("vecreg_data: %x, cnt:%d, time:%d", vecregs_rdata1, cnt, $time);
 							opA[unpack_index +: 32]  <= vecregs_rdata1[31:0];
 							opB[unpack_index +: 32]  <= vecregs_rdata2[31:0];
 							unpack_index <= unpack_index+32;
 							arth_data_ready <= 1; 
+							condition_bit <= 0;
+						end
+						else if(instr_vaddvarp || instr_vsubvarp || instr_vmulvarp) begin
+							vecregs_rstrb1 <= 1 << (temp_count2+1);
+							if(vap == 10'b0000000001) begin
+								$display("vecreg_data: %x, cnt:%d, time:%d", vecregs_rdata1, cnt, $time);
+								//Converting sew of 1 to 8 bits to operate on them
+								opA[unpack_index +: 32]     <= {7'b0,vecregs_rdata1[3],7'b0,vecregs_rdata1[2],7'b0,vecregs_rdata1[1],7'b0,vecregs_rdata1[0]};
+								opA[unpack_index+32 +: 32]  <= {7'b0,vecregs_rdata1[7],7'b0,vecregs_rdata1[6],7'b0,vecregs_rdata1[5],7'b0,vecregs_rdata1[4]};
+								opA[unpack_index+64 +: 32]  <= {7'b0,vecregs_rdata1[11],7'b0,vecregs_rdata1[10],7'b0,vecregs_rdata1[9],7'b0,vecregs_rdata1[8]};
+								opA[unpack_index+96 +: 32]  <= {7'b0,vecregs_rdata1[15],7'b0,vecregs_rdata1[14],7'b0,vecregs_rdata1[13],7'b0,vecregs_rdata1[12]};
+								opA[unpack_index+128 +: 32] <= {7'b0,vecregs_rdata1[19],7'b0,vecregs_rdata1[18],7'b0,vecregs_rdata1[17],7'b0,vecregs_rdata1[16]};
+								opA[unpack_index+160 +: 32] <= {7'b0,vecregs_rdata1[23],7'b0,vecregs_rdata1[22],7'b0,vecregs_rdata1[21],7'b0,vecregs_rdata1[20]};
+								opA[unpack_index+192 +: 32] <= {7'b0,vecregs_rdata1[27],7'b0,vecregs_rdata1[26],7'b0,vecregs_rdata1[25],7'b0,vecregs_rdata1[24]};
+								opA[unpack_index+224 +: 32] <= {7'b0,vecregs_rdata1[31],7'b0,vecregs_rdata1[30],7'b0,vecregs_rdata1[29],7'b0,vecregs_rdata1[28]};
+								opB[unpack_index +: 32]     <= {7'b0,vecregs_rdata2[3],7'b0,vecregs_rdata2[2],7'b0,vecregs_rdata2[1],7'b0,vecregs_rdata2[0]};
+								opB[unpack_index+32 +: 32]  <= {7'b0,vecregs_rdata2[7],7'b0,vecregs_rdata2[6],7'b0,vecregs_rdata2[5],7'b0,vecregs_rdata2[4]};
+								opB[unpack_index+64 +: 32]  <= {7'b0,vecregs_rdata2[11],7'b0,vecregs_rdata2[10],7'b0,vecregs_rdata2[9],7'b0,vecregs_rdata2[8]};
+								opB[unpack_index+96 +: 32]  <= {7'b0,vecregs_rdata2[15],7'b0,vecregs_rdata2[14],7'b0,vecregs_rdata2[13],7'b0,vecregs_rdata2[12]};
+								opB[unpack_index+128 +: 32] <= {7'b0,vecregs_rdata2[19],7'b0,vecregs_rdata2[18],7'b0,vecregs_rdata2[17],7'b0,vecregs_rdata2[16]};
+								opB[unpack_index+160 +: 32] <= {7'b0,vecregs_rdata2[23],7'b0,vecregs_rdata2[22],7'b0,vecregs_rdata2[21],7'b0,vecregs_rdata2[20]};
+								opB[unpack_index+192 +: 32] <= {7'b0,vecregs_rdata2[27],7'b0,vecregs_rdata2[26],7'b0,vecregs_rdata2[25],7'b0,vecregs_rdata2[24]};
+								opB[unpack_index+224 +: 32] <= {7'b0,vecregs_rdata2[31],7'b0,vecregs_rdata2[30],7'b0,vecregs_rdata2[29],7'b0,vecregs_rdata2[28]};
+								unpack_index <= unpack_index+256;
+								arth_data_ready <= 1; 
+							end
+							if(vap == 10'b0000000010) begin
+								$display("vecreg_data: %x, cnt:%d, time:%d", vecregs_rdata1, cnt, $time);
+								opA[unpack_index +: 32]     <= {6'b0,vecregs_rdata1[7:6],6'b0,vecregs_rdata1[5:4],6'b0,vecregs_rdata1[3:2],6'b0,vecregs_rdata1[1:0]};
+								opA[unpack_index+32 +: 32]  <= {6'b0,vecregs_rdata1[15:14],6'b0,vecregs_rdata1[13:12],6'b0,vecregs_rdata1[11:10],6'b0,vecregs_rdata1[9:8]};
+								opA[unpack_index+64 +: 32]  <= {6'b0,vecregs_rdata1[23:22],6'b0,vecregs_rdata1[21:20],6'b0,vecregs_rdata1[19:18],6'b0,vecregs_rdata1[17:16]};
+								opA[unpack_index+96 +: 32]  <= {6'b0,vecregs_rdata1[31:30],6'b0,vecregs_rdata1[29:28],6'b0,vecregs_rdata1[27:26],6'b0,vecregs_rdata1[25:24]};
+								opB[unpack_index +: 32]     <= {6'b0,vecregs_rdata2[7:6],6'b0,vecregs_rdata2[5:4],6'b0,vecregs_rdata2[3:2],6'b0,vecregs_rdata2[1:0]};
+								opB[unpack_index+32 +: 32]  <= {6'b0,vecregs_rdata2[15:14],6'b0,vecregs_rdata2[13:12],6'b0,vecregs_rdata2[11:10],6'b0,vecregs_rdata2[9:8]};
+								opB[unpack_index+64 +: 32]  <= {6'b0,vecregs_rdata2[23:22],6'b0,vecregs_rdata2[21:20],6'b0,vecregs_rdata2[19:18],6'b0,vecregs_rdata2[17:16]};
+								opB[unpack_index+96 +: 32]  <= {6'b0,vecregs_rdata2[31:30],6'b0,vecregs_rdata2[29:28],6'b0,vecregs_rdata2[27:26],6'b0,vecregs_rdata2[25:24]};
+								unpack_index <= unpack_index+128;
+								arth_data_ready <= 1; 
+							end
+							if(vap == 10'b0000000100) begin
+								$display("vecreg_data: %x, cnt:%d, time:%d", vecregs_rdata1, cnt, $time);
+								opA[unpack_index +: 32]     <= {4'b0,vecregs_rdata1[15:12],4'b0,vecregs_rdata1[11:8],4'b0,vecregs_rdata1[7:4],4'b0,vecregs_rdata1[3:0]};
+								opA[unpack_index+32 +: 32]  <= {4'b0,vecregs_rdata1[31:28],4'b0,vecregs_rdata1[27:24],4'b0,vecregs_rdata1[23:20],4'b0,vecregs_rdata1[19:16]};
+								opB[unpack_index +: 32]     <= {4'b0,vecregs_rdata2[15:12],4'b0,vecregs_rdata2[11:8],4'b0,vecregs_rdata2[7:4],4'b0,vecregs_rdata2[3:0]};
+								opB[unpack_index+32 +: 32]  <= {4'b0,vecregs_rdata2[31:28],4'b0,vecregs_rdata2[27:24],4'b0,vecregs_rdata2[23:20],4'b0,vecregs_rdata2[19:16]};
+								unpack_index <= unpack_index+128;
+								arth_data_ready <= 1; 
+							end
+							else if(vap == 10'b0000001000) begin
+								$display("vecreg_data: %x, cnt:%d, time:%d", vecregs_rdata1, cnt, $time);
+								opA[unpack_index +: 32]  <= vecregs_rdata1[31:0];
+								opB[unpack_index +: 32]  <= vecregs_rdata2[31:0];
+								unpack_index <= unpack_index+32;
+								arth_data_ready <= 1; 
+							end
+							condition_bit <= 0;
 						end
 					end
 				end
@@ -952,6 +957,7 @@ module picorv32_pcpi_vec #(
 							mem_wordsize <= 2;
 						end
 						(instr_vadd): begin
+							$display("vec_reg1;%d, vec_reg2:%d, vec_vd:%d, time %d", decoded_vs1, decoded_vs2, decoded_vd, $time);
 							cpu_state <= cpu_state_exec;
 							micro_exec_instr <= p_instr_vadd__vv;
 							vecregs_waddr <= decoded_vd;
@@ -959,9 +965,12 @@ module picorv32_pcpi_vec #(
 							vecregs_raddr2 <= decoded_vs2;
 							vecregs_rstrb1 <= 16'b1;  //To read the first word
 							arth_data_ready <= 0; //Initial value of mem_str_ready
-							unpack_data <= 0;
+							// unpack_data <= 1;
+							cnt <= 0;
 							elem_n <= 0;
 							temp_var <= 0;
+							temp_count2 <= 0;
+							condition_bit <= 0;
 							no_words <= ((vcsr_vl*SEW)>>5); //No of words to read from vec reg
 							read_count <= 0;
 							v_membits <= vcsr_vl * ((v_enc_width==3'b000)? 8:(v_enc_width==3'b101)?16:(v_enc_width==3'b110)?32:SEW); 
@@ -974,7 +983,7 @@ module picorv32_pcpi_vec #(
 							vecregs_raddr2 = decoded_vs2;
 							vecregs_raddr3 = decoded_vd; //For dot product
 							arth_data_ready <= 0;
-							unpack_data <= 1;  //We have to read three registers here 
+							// unpack_data <= 2;  //We have to read three registers here 
 							// vreg_op1 <= vecregs_rdata1;
 							// vreg_op2 <= vecregs_rdata2;
 							// vreg_op3 <= vecregs_rdata3; //Used for dot product
@@ -1208,9 +1217,10 @@ module picorv32_pcpi_vec #(
 				end
 				cpu_state_exec: begin
 					if(temp_var == 0) begin
-						// $display("Inside cnt=0 condition, mem_read_no:%d, no_words:%d, new_no_words:%d, time: %d",final_addr - init_addr + 1, no_words, new_no_words, $time);
+						$display("Inside cnt=0 condition, no_words:%d, time: %d",no_words, $time);
+						unpack_data <= 1;  //We have to read three registers here 
 						bits_remaining <= v_membits[4:0]; //Remainder after dividing mem_bits with 32
-						// condition_bit <= 1;
+						condition_bit <= 1;   //Used to sunchronize the data forwarding
 						if(v_membits[4:0] > 0)
 							no_words <= no_words+1;
 						temp_var <= 1; //So that it enters this block only once
@@ -1219,16 +1229,19 @@ module picorv32_pcpi_vec #(
 						if(read_count < no_words) begin
 							if((arth_data_ready == 1)) begin 
 								alu_enb <= 1;
-								$display("Inside if arth_data_ready, unpacked data A: %x, unpacked data B: %x, time:%d",opA, opB, $time);
+								$display("Inside if arth_data_ready,temp_count2:%b, unpacked data A: %x, unpacked data B: %x, time:%d",temp_count2, opA[127:0], opB[127:0], $time);
 								read_count <= read_count + 1;
 								temp_count2 <= temp_count2 + 1;
-								// condition_bit <= 1;
+								condition_bit <= 1;
 								arth_data_ready <= 0;
+								if(read_count == no_words-1)
+									unpack_data <= 0;
 							end
 						end
 						if(read_count == no_words) begin
 							if(alu_done) begin
-								$display("alu_out:%x, time:%d", alu_out, $time);
+								$display("\nopA:%x, \nopB:%x", opA[127:0], opB[127:0]);
+								$display("alu_out:%x, time:%d\n", alu_out[127:0], $time);
 								latched_vstore <= 0; //Should be 1
 								alu_enb <= 0;
 								mem_wordsize <= 0;
