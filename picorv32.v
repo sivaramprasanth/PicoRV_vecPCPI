@@ -735,7 +735,7 @@ module picorv32 #(
 	wire instr_vec; //To indicate vector instructions
 	reg instr_vsetvli,instr_vsetvl,instr_vsetprecision; //Vec instrn to set the csr reg values
 	reg instr_vload,instr_vstore;   //Vec load includes strided also and store instr
-	reg instr_vdot,instr_vadd; //For dot product and addition
+	reg instr_vdot,instr_vadd, instr_vmul; //For dot product and addition
 	reg instr_vleuvarp, instr_vlesvarp, instr_vseuvarp, instr_vsesvarp, instr_vaddvarp, instr_vsubvarp, instr_vmulvarp, instr_vdotvarp; //Instructions added for vap
 
 	
@@ -776,7 +776,7 @@ module picorv32 #(
 			instr_rdcycle, instr_rdcycleh, instr_rdinstr, instr_rdinstrh,
 			instr_getq, instr_setq, instr_retirq, instr_maskirq, instr_waitirq, instr_timer };
 	//For vector instructions
-	assign instr_vec = (WITH_PCPI) && {instr_vload,instr_vstore,instr_vadd,instr_vdot,instr_vsetvli,instr_vsetvl, 
+	assign instr_vec = (WITH_PCPI) && {instr_vload,instr_vstore,instr_vadd,instr_vmul,instr_vdot,instr_vsetvli,instr_vsetvl, 
 						instr_vsetprecision, instr_vleuvarp, instr_vlesvarp, instr_vseuvarp, instr_vsesvarp,
 						instr_vaddvarp, instr_vsubvarp, instr_vmulvarp, instr_vdotvarp}; //Assigning 1 if it is a vector instrn
 
@@ -863,6 +863,7 @@ module picorv32 #(
 		if (instr_vseuvarp) new_ascii_instr = "instr_vseuvarp";
 		if (instr_vsesvarp) new_ascii_instr = "instr_vsesvarp";
 		if (instr_vadd)		new_ascii_instr = "vadd";
+		if (instr_vmul)     new_ascii_instr = "vmul";
 		if (instr_vdot)     new_ascii_instr = "vdot";
 		if (instr_vaddvarp) new_ascii_instr = "vaddvarp";
 		if(instr_vsubvarp)  new_ascii_instr = "vsubvarp";
@@ -1205,9 +1206,9 @@ module picorv32 #(
 			instr_vlesvarp <= (mem_rdata_q[29:26]==4'b0001 && mem_rdata_q[14:12]==3'b111 && mem_rdata_q[6:0] == 7'b1011011 && mem_rdata_q[31:30] == 2'b00);
 			instr_vseuvarp <= (mem_rdata_q[29:26]==4'b0000 && mem_rdata_q[14:12]==3'b111 && mem_rdata_q[6:0] == 7'b1011011 && mem_rdata_q[31:30] == 2'b01);
 			instr_vsesvarp <= (mem_rdata_q[29:26]==4'b0001 && mem_rdata_q[14:12]==3'b111 && mem_rdata_q[6:0] == 7'b1011011 && mem_rdata_q[31:30] == 2'b01);
-			instr_vdot     <= mem_rdata_q[31:26]==6'b111001 && mem_rdata_q[14:12] == 3'b000 && mem_rdata_q[6:0]==7'b1010111;
+			instr_vdot     <= (mem_rdata_q[31:26]==6'b111001 && mem_rdata_q[14:12] == 3'b000 && mem_rdata_q[6:0]==7'b1010111);
 			instr_vadd     <= (mem_rdata_q[31:26]==6'b000000 && mem_rdata_q[14:12] == 3'b000 && mem_rdata_q[6:0]==7'b1010111);
-
+			instr_vmul     <= (mem_rdata_q[31:26]==6'b100101 && mem_rdata_q[14:12] == 3'b000 && mem_rdata_q[6:0]==7'b1010111);
 			//Arithmetic instr for vap 
 			instr_vaddvarp <= (mem_rdata_q[31:30] == 2'b11 && mem_rdata_q[29:25]==5'b00000 && mem_rdata_q[14:12] == 3'b000 && mem_rdata_q[6:0]==7'b1011011);
 			instr_vsubvarp <= (mem_rdata_q[31:30] == 2'b11 && mem_rdata_q[29:25]==5'b00001 && mem_rdata_q[14:12] == 3'b000 && mem_rdata_q[6:0]==7'b1011011);
@@ -1308,6 +1309,10 @@ module picorv32 #(
 			instr_vsetvl <= 0;
 			instr_vdot   <= 0;			
 			instr_vadd   <= 0;		
+			instr_vmul   <= 0;
+			instr_vaddvarp <= 0;
+			instr_vdotvarp <= 0;
+			instr_vsubvarp <= 0;
 			is_vec_used  <= 0; //resetting is_vec_used 
 		end
 	end

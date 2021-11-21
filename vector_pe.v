@@ -17,12 +17,12 @@ module vector_processing_element(
 );
 
 //Used for vector arithmetic instructions
-localparam p_instr_vadd__vv = 8'h00 ;
-localparam p_instr_vmul__vv = 8'h01 ;
-localparam p_instr_vdot__vv = 8'h02 ;
-localparam p_instr_vmulvarp = 8'h03 ;
-localparam p_instr_vaddvarp = 8'h04 ;
-localparam p_instr_vdotvarp = 8'h05 ;
+	localparam p_instr_vadd__vv = 8'h00 ;
+	localparam p_instr_vmul__vv = 8'h01 ;
+	localparam p_instr_vdot__vv = 8'h02 ;
+	localparam p_instr_vaddvarp = 8'h03 ;
+	localparam p_instr_vmulvarp = 8'h04 ;
+	localparam p_instr_vdotvarp = 8'h05 ;
 
 always @(posedge clk) begin
     if(reset) begin
@@ -47,6 +47,20 @@ always @(posedge clk) begin
                 peout[31:24] <= opA[31:24] + opB[31:24]; 
                 done <= 1;
             end
+        end 
+        if(instruction == p_instr_vaddvarp) begin
+            peout[7:0] <= opA[7:0] + opB[7:0];  //SEW is 8
+            peout[15:8] <= opA[15:8] + opB[15:8]; 
+            peout[23:16] <= opA[23:16] + opB[23:16]; 
+            peout[31:24] <= opA[31:24] + opB[31:24]; 
+            done <= 1;
+        end 
+        if(instruction == p_instr_vmulvarp) begin
+            peout[7:0] <= opA[7:0] + opB[7:0];  //SEW is 8
+            peout[15:8] <= opA[15:8] + opB[15:8]; 
+            peout[23:16] <= opA[23:16] + opB[23:16]; 
+            peout[31:24] <= opA[31:24] + opB[31:24]; 
+            done <= 1;
         end 
     end
 end
