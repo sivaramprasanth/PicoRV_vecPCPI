@@ -60,359 +60,359 @@ module picorv32_pcpi_vec #(
 	reg [1:0] vstore_bit;  //Used to initialize the store instruction
 
 //memory interface 
-	always @(posedge clk) begin
-		// (* full_case *)
-		if(pcpi_valid) begin
-			// $display("mem_rdata:%x, time:%d",mem_rdata,$time);
-			case (mem_wordsize)
-				0: begin
-					mem_str_ready2 <= 0;
-					if(mem_ready == 1) begin
-						// $display("Inside mem_interface, mem_rdata:%x, time:%d", mem_rdata,$time);
-						if(instr_vload || instr_vload_str || instr_vleuvarp || instr_vlesvarp) begin
-							mem_rdata_word <= mem_rdata; //reads 32 bits
-						end
-						mem_str_ready2 <= 1; //str_ready will be 1 irrespective of the instruction
-					end
-				end
-				1: begin
-					mem_str_ready <= 0;
-					if(instr_vload || instr_vload_str) begin
-						if(SEW == 10'b0000001000) begin
-							// $display("Inside mem_wsize1,ind1:%d, mem_rdata_word:%x, time:%d",ind1, mem_rdata_word, $time);
-							mem_rdata_word[7:0]   <= ld_data[ind1 +: 8];
-							mem_rdata_word[15:8]  <= ld_data[(ind1+reg_op2*8) +: 8];
-							mem_rdata_word[23:16]  <= ld_data[(ind1+reg_op2*16) +: 8];
-							mem_rdata_word[31:24] <= ld_data[(ind1+reg_op2*24) +: 8];
-							mem_str_ready <= 1; 
-							ind1 <= ind1 + 4*8*reg_op2;
-						end
-						else if(SEW == 10'b0000010000) begin
-							// $display("Inside mem_wsize1,ind1:%d, mem_rdata_word:%x, time:%d",ind1, mem_rdata_word, $time);
-							mem_rdata_word[15:0]   <= ld_data[ind1 +: 16];
-							mem_rdata_word[31:16]  <= ld_data[(ind1+reg_op2*8) +: 16];
-							mem_str_ready <= 1; 
-							ind1 <= ind1 + 2*8*reg_op2;
-						end
-						//SEW is 32
-						else if(SEW == 10'b0000100000) begin
-							mem_rdata_word <= ld_data[ind1 +: 32];
-							mem_str_ready <= 1; 
-							ind1 <= ind1 + 8*reg_op2;
-						end
-					end
-					else if(instr_vleuvarp || instr_vlesvarp) begin
-						if(vap == 10'b0000000001) begin
-							//The first addr will be ind1, next will be ind1+regop2*1*8, next reg_op2*2*8 etc
-							mem_rdata_word[0]   <= ld_data[ind1 +: 1];
-							mem_rdata_word[1]   <= ld_data[(ind1+reg_op2*8) +: 1];
-							mem_rdata_word[2]   <= ld_data[(ind1+reg_op2*16) +: 1];
-							mem_rdata_word[3]   <= ld_data[ind1+reg_op2*24 +: 1];
-							mem_rdata_word[4]   <= ld_data[(ind1+reg_op2*32) +: 1];
-							mem_rdata_word[5] <= ld_data[(ind1+reg_op2*40) +: 1];
-							mem_rdata_word[6] <= ld_data[(ind1+reg_op2*48) +: 1];
-							mem_rdata_word[7] <= ld_data[(ind1+reg_op2*56) +: 1];
-							mem_rdata_word[8] <= ld_data[ind1+reg_op2*8*8 +: 1];
-							mem_rdata_word[9] <= ld_data[(ind1+reg_op2*9*8) +: 1];
-							mem_rdata_word[10] <= ld_data[(ind1+reg_op2*10*8) +: 1];
-							mem_rdata_word[11] <= ld_data[ind1+reg_op2*11*8 +: 1];
-							mem_rdata_word[12] <= ld_data[(ind1+reg_op2*12*8) +: 1];
-							mem_rdata_word[13] <= ld_data[(ind1+reg_op2*13*8) +: 1];
-							mem_rdata_word[14] <= ld_data[(ind1+reg_op2*14*8) +: 1];
-							mem_rdata_word[15] <= ld_data[(ind1+reg_op2*15*8) +: 1];
-							mem_rdata_word[16]   <= ld_data[(ind1 + reg_op2*8*16) +: 1];
-							mem_rdata_word[17]   <= ld_data[(ind1+reg_op2*17*8) +: 1];
-							mem_rdata_word[18]   <= ld_data[(ind1+reg_op2*18*8) +: 1];
-							mem_rdata_word[19]   <= ld_data[ind1+reg_op2*19*8 +: 1];
-							mem_rdata_word[20]   <= ld_data[(ind1+reg_op2*20*8) +: 1];
-							mem_rdata_word[21] <= ld_data[(ind1+reg_op2*21*8) +: 1];
-							mem_rdata_word[22] <= ld_data[(ind1+reg_op2*22*8) +: 1];
-							mem_rdata_word[23] <= ld_data[(ind1+reg_op2*23*8) +: 1];
-							mem_rdata_word[24] <= ld_data[ind1+reg_op2*24*8 +: 1];
-							mem_rdata_word[25] <= ld_data[(ind1+reg_op2*25*8) +: 1];
-							mem_rdata_word[26] <= ld_data[(ind1+reg_op2*26*8) +: 1];
-							mem_rdata_word[27] <= ld_data[ind1+reg_op2*27*8 +: 1];
-							mem_rdata_word[28] <= ld_data[(ind1+reg_op2*28*8) +: 1];
-							mem_rdata_word[39] <= ld_data[(ind1+reg_op2*29*8) +: 1];
-							mem_rdata_word[30] <= ld_data[(ind1+reg_op2*30*8) +: 1];
-							mem_rdata_word[31] <= ld_data[(ind1+reg_op2*31*8) +: 1];
-							mem_str_ready <= 1; 
-							ind1 <= ind1 + 32*8*reg_op2;
-						end
-						else if(vap == 10'b0000000010) begin
-							//The first addr will be ind1, next will be ind1+regop2*1*8, next reg_op2*2*8 etc
-							mem_rdata_word[1:0]   <= ld_data[ind1 +: 2];
-							mem_rdata_word[3:2]   <= ld_data[(ind1+reg_op2*8) +: 2];
-							mem_rdata_word[5:4]   <= ld_data[(ind1+reg_op2*16) +: 2];
-							mem_rdata_word[7:6]   <= ld_data[ind1+reg_op2*24 +: 2];
-							mem_rdata_word[9:8]   <= ld_data[(ind1+reg_op2*32) +: 2];
-							mem_rdata_word[11:10] <= ld_data[(ind1+reg_op2*40) +: 2];
-							mem_rdata_word[13:12] <= ld_data[(ind1+reg_op2*48) +: 2];
-							mem_rdata_word[15:14] <= ld_data[(ind1+reg_op2*56) +: 2];
-							mem_rdata_word[17:16] <= ld_data[ind1+reg_op2*8*8 +: 2];
-							mem_rdata_word[19:18] <= ld_data[(ind1+reg_op2*9*8) +: 2];
-							mem_rdata_word[21:20] <= ld_data[(ind1+reg_op2*10*8) +: 2];
-							mem_rdata_word[23:22] <= ld_data[ind1+reg_op2*11*8 +: 2];
-							mem_rdata_word[25:24] <= ld_data[(ind1+reg_op2*12*8) +: 2];
-							mem_rdata_word[27:26] <= ld_data[(ind1+reg_op2*13*8) +: 2];
-							mem_rdata_word[29:28] <= ld_data[(ind1+reg_op2*14*8) +: 2];
-							mem_rdata_word[31:30] <= ld_data[(ind1+reg_op2*15*8) +: 2];
-							mem_str_ready <= 1; 
-							ind1 <= ind1 + 16*8*reg_op2;
-						end
-						else if(vap == 10'b0000000011) begin
-							//The first addr will be ind1, next will be ind1+regop2*1*8, next reg_op2*2*8 etc
-							mem_rdata_word[2:0]   <= ld_data[ind1 +: 3];
-							mem_rdata_word[5:3]   <= ld_data[(ind1+reg_op2*8) +: 3];
-							mem_rdata_word[8:6]   <= ld_data[(ind1+reg_op2*16) +: 3];
-							mem_rdata_word[11:9]   <= ld_data[ind1+reg_op2*24 +: 3];
-							mem_rdata_word[14:12]   <= ld_data[(ind1+reg_op2*32) +: 3];
-							mem_rdata_word[17:15] <= ld_data[(ind1+reg_op2*40) +: 3];
-							mem_rdata_word[20:18] <= ld_data[(ind1+reg_op2*48) +: 3];
-							mem_rdata_word[23:21] <= ld_data[(ind1+reg_op2*56) +: 3];
-							mem_rdata_word[26:24] <= ld_data[ind1+reg_op2*8*8 +: 3];
-							mem_rdata_word[29:27] <= ld_data[(ind1+reg_op2*9*8) +: 3];
-							mem_rdata_word[31:30] <= ld_data[(ind1+reg_op2*10*8) +: 2];
-							mem_str_ready <= 1; 
-							ind1 <= ind1 + 10*8*reg_op2 + 2;
-						end
-						else if(vap == 10'b0000000100) begin
-							// $display("Inside mem_wsize2,ind1:%d, mem_rdata_word:%x, time:%d",ind1, mem_rdata_word, $time);
-							//The first addr will be ind1, next will be ind1+regop2*1*8, next reg_op2*2*8 etc
-							mem_rdata_word[3:0]   <= ld_data[ind1 +: 4];
-							mem_rdata_word[7:4]   <= ld_data[(ind1+reg_op2*8) +: 4];
-							mem_rdata_word[11:8]  <= ld_data[(ind1+reg_op2*16) +: 4];
-							mem_rdata_word[15:12] <= ld_data[ind1+reg_op2*24 +: 4];
-							mem_rdata_word[19:16] <= ld_data[(ind1+reg_op2*32) +: 4];
-							mem_rdata_word[23:20] <= ld_data[(ind1+reg_op2*40) +: 4];
-							mem_rdata_word[27:24] <= ld_data[(ind1+reg_op2*48) +: 4];
-							mem_rdata_word[31:28] <= ld_data[(ind1+reg_op2*56) +: 4];
-							mem_str_ready <= 1; 
-							ind1 <= ind1 + 8*8*reg_op2;
-						end
-						if(vap == 10'b0000001000) begin
-							// $display("Inside mem_wsize1,ind1:%d, mem_rdata_word:%x, time:%d",ind1, mem_rdata_word, $time);
-							mem_rdata_word[7:0]   <= ld_data[ind1 +: 8];
-							mem_rdata_word[15:8]  <= ld_data[(ind1+reg_op2*8) +: 8];
-							mem_rdata_word[23:16]  <= ld_data[(ind1+reg_op2*16) +: 8];
-							mem_rdata_word[31:24] <= ld_data[(ind1+reg_op2*24) +: 8];
-							mem_str_ready <= 1; 
-							ind1 <= ind1 + 4*8*reg_op2;
-						end
-						if(vap == 10'b0000001010) begin
-							// $display("Inside mem_wsize1,ind1:%d, mem_rdata_word:%x, time:%d",ind1, mem_rdata_word, $time);
-							mem_rdata_word[9:0]   <= ld_data[ind1 +: 10];
-							mem_rdata_word[19:10]  <= ld_data[(ind1+reg_op2*8) +: 10];
-							mem_rdata_word[29:20]  <= ld_data[(ind1+reg_op2*16) +: 10];
-							mem_rdata_word[31:30] <= ld_data[(ind1+reg_op2*24) +: 2];
-							mem_str_ready <= 1; 
-							ind1 <= ind1 + 4*8*reg_op2;
-						end
-					end
-				end
-				2:  begin
-					if(condition_bit == 1) begin
-						mem_str_ready <= 0;
-						if(instr_vstore || instr_vstore_str) begin
-							vecregs_rstrb1 <= 1 << (temp_count2+1);
-							if(SEW == 10'b0000001000) begin
-								$display("vecreg_data: %x, cnt:%d, time:%d", vecregs_rdata1, cnt, $time);
-								st_data[cnt +: 8] <= vecregs_rdata1[7:0];
-								st_data[(cnt+reg_op2*8) +: 8] <= vecregs_rdata1[15:8];
-								st_data[(cnt+reg_op2*2*8) +: 8] <= vecregs_rdata1[23:16];
-								st_data[(cnt+reg_op2*3*8) +: 8] <= vecregs_rdata1[31:24];
-								st_strb[cnt >> 3] <= 1;
-								st_strb[(cnt >> 3) + reg_op2] <= 1;
-								st_strb[(cnt >> 3) + 2*reg_op2] <= 1;
-								st_strb[(cnt >> 3) + 3*reg_op2] <= 1;
-								cnt <= cnt + 4*8*reg_op2;
-								mem_str_ready <= 1; 
-							end
-							//SEW is 16
-							else if(SEW == 10'b0000010000) begin
-								st_data[cnt +: 16] <= vecregs_rdata1[15:0];
-								st_data[(cnt+reg_op2*8) +: 16] <= vecregs_rdata1[31:16];
-								st_strb[(cnt >> 3) +: 2] <= 2'b11;
-								st_strb[((cnt >> 3) + reg_op2) +: 2] <= 2'b11;
-								cnt <= cnt + 2*8*reg_op2;
-								mem_str_ready <= 1; 
-							end
-							//SEW is 32
-							else if(SEW == 10'b0000100000) begin
-								st_data[cnt +: 32] <= vecregs_rdata1;
-								st_strb[(cnt >> 3) +: 4] <= 4'b1111;
-								cnt <= cnt + 8*reg_op2;
-								mem_str_ready <= 1; 
-							end
-							condition_bit <= 0;
-						end
-						else if(instr_vseuvarp || instr_vsesvarp) begin
-							//SEW is 1
-							if(vap == 10'b0000000001) begin
-								$display("vecreg_data: %x, cnt:%d, time:%d", vecregs_rdata1, cnt, $time);
-								st_data[cnt +: 1] <= vecregs_rdata1[0];
-								st_data[(cnt+reg_op2*8) +: 1] <= vecregs_rdata1[1];
-								st_data[(cnt+reg_op2*2*8) +: 1] <= vecregs_rdata1[2];
-								st_data[(cnt+reg_op2*3*8) +: 1] <= vecregs_rdata1[3];
-								st_data[(cnt+reg_op2*4*8) +: 1] <= vecregs_rdata1[4];
-								st_data[(cnt+reg_op2*5*8) +: 1] <= vecregs_rdata1[5];
-								st_data[(cnt+reg_op2*6*8) +: 1] <= vecregs_rdata1[6];
-								st_data[(cnt+reg_op2*7*8) +: 1] <= vecregs_rdata1[7];
-								st_data[(cnt+reg_op2*8*8) +: 1] <= vecregs_rdata1[8];
-								st_data[(cnt+reg_op2*9*8) +: 1] <= vecregs_rdata1[9];
-								st_data[(cnt+reg_op2*10*8) +: 1] <= vecregs_rdata1[10];
-								st_data[(cnt+reg_op2*11*8) +: 1] <= vecregs_rdata1[11];
-								st_data[(cnt+reg_op2*12*8) +: 1] <= vecregs_rdata1[12];
-								st_data[(cnt+reg_op2*13*8) +: 1] <= vecregs_rdata1[13];
-								st_data[(cnt+reg_op2*14*8) +: 1] <= vecregs_rdata1[14];
-								st_data[(cnt+reg_op2*15*8) +: 1] <= vecregs_rdata1[15];
-								st_data[(cnt+reg_op2*16*8) +: 1] <= vecregs_rdata1[16];
-								st_data[(cnt+reg_op2*17*8) +: 1] <= vecregs_rdata1[17];
-								st_data[(cnt+reg_op2*18*8) +: 1] <= vecregs_rdata1[18];
-								st_data[(cnt+reg_op2*19*8) +: 1] <= vecregs_rdata1[19];
-								st_data[(cnt+reg_op2*20*8) +: 1] <= vecregs_rdata1[20];
-								st_data[(cnt+reg_op2*21*8) +: 1] <= vecregs_rdata1[21];
-								st_data[(cnt+reg_op2*22*8) +: 1] <= vecregs_rdata1[22];
-								st_data[(cnt+reg_op2*23*8) +: 1] <= vecregs_rdata1[23];
-								st_data[(cnt+reg_op2*24*8) +: 1] <= vecregs_rdata1[24];
-								st_data[(cnt+reg_op2*25*8) +: 1] <= vecregs_rdata1[25];
-								st_data[(cnt+reg_op2*26*8) +: 1] <= vecregs_rdata1[26];
-								st_data[(cnt+reg_op2*27*8) +: 1] <= vecregs_rdata1[27];
-								st_data[(cnt+reg_op2*28*8) +: 1] <= vecregs_rdata1[28];
-								st_data[(cnt+reg_op2*29*8) +: 1] <= vecregs_rdata1[29];
-								st_data[(cnt+reg_op2*30*8) +: 1] <= vecregs_rdata1[30];
-								st_data[(cnt+reg_op2*31*8) +: 1] <= vecregs_rdata1[31];
-								st_strb[cnt >> 3] <= 1;
-								st_strb[(cnt >> 3) + reg_op2] <= 1;
-								st_strb[(cnt >> 3) + 2*reg_op2] <= 1;
-								st_strb[(cnt >> 3) + 3*reg_op2] <= 1;
-								st_strb[(cnt >> 3) + 4*reg_op2] <= 1;
-								st_strb[(cnt >> 3) + 5*reg_op2] <= 1;
-								st_strb[(cnt >> 3) + 6*reg_op2] <= 1;
-								st_strb[(cnt >> 3) + 7*reg_op2] <= 1;
-								st_strb[(cnt >> 3) + 8*reg_op2] <= 1;
-								st_strb[(cnt >> 3) + 9*reg_op2] <= 1;
-								st_strb[(cnt >> 3) + 10*reg_op2] <= 1;
-								st_strb[(cnt >> 3) + 11*reg_op2] <= 1;
-								st_strb[(cnt >> 3) + 12*reg_op2] <= 1;
-								st_strb[(cnt >> 3) + 13*reg_op2] <= 1;
-								st_strb[(cnt >> 3) + 14*reg_op2] <= 1;
-								st_strb[(cnt >> 3) + 15*reg_op2] <= 1;
-								st_strb[(cnt >> 3) + 16*reg_op2] <= 1;
-								st_strb[(cnt >> 3) + 17*reg_op2] <= 1;
-								st_strb[(cnt >> 3) + 18*reg_op2] <= 1;
-								st_strb[(cnt >> 3) + 19*reg_op2] <= 1;
-								st_strb[(cnt >> 3) + 20*reg_op2] <= 1;
-								st_strb[(cnt >> 3) + 21*reg_op2] <= 1;
-								st_strb[(cnt >> 3) + 22*reg_op2] <= 1;
-								st_strb[(cnt >> 3) + 23*reg_op2] <= 1;
-								st_strb[(cnt >> 3) + 24*reg_op2] <= 1;
-								st_strb[(cnt >> 3) + 25*reg_op2] <= 1;
-								st_strb[(cnt >> 3) + 26*reg_op2] <= 1;
-								st_strb[(cnt >> 3) + 27*reg_op2] <= 1;
-								st_strb[(cnt >> 3) + 28*reg_op2] <= 1;
-								st_strb[(cnt >> 3) + 29*reg_op2] <= 1;
-								st_strb[(cnt >> 3) + 30*reg_op2] <= 1;
-								st_strb[(cnt >> 3) + 31*reg_op2] <= 1;
-								cnt <= cnt + 32*8*reg_op2;
-								mem_str_ready <= 1; 
-							end
-							if(vap == 10'b0000000010) begin
-								$display("vecreg_data: %x, cnt:%d, time:%d", vecregs_rdata1, cnt, $time);
-								st_data[cnt +: 2] <= vecregs_rdata1[1:0];
-								st_data[(cnt+reg_op2*8) +: 2] <= vecregs_rdata1[3:2];
-								st_data[(cnt+reg_op2*2*8) +: 2] <= vecregs_rdata1[5:4];
-								st_data[(cnt+reg_op2*3*8) +: 2] <= vecregs_rdata1[7:6];
-								st_data[(cnt+reg_op2*4*8) +: 2] <= vecregs_rdata1[9:8];
-								st_data[(cnt+reg_op2*5*8) +: 2] <= vecregs_rdata1[11:10];
-								st_data[(cnt+reg_op2*6*8) +: 2] <= vecregs_rdata1[13:12];
-								st_data[(cnt+reg_op2*7*8) +: 2] <= vecregs_rdata1[15:14];
-								st_data[(cnt+reg_op2*8*8) +: 2] <= vecregs_rdata1[17:16];
-								st_data[(cnt+reg_op2*9*8) +: 2] <= vecregs_rdata1[19:18];
-								st_data[(cnt+reg_op2*10*8) +: 2] <= vecregs_rdata1[21:20];
-								st_data[(cnt+reg_op2*11*8) +: 2] <= vecregs_rdata1[23:22];
-								st_data[(cnt+reg_op2*12*8) +: 2] <= vecregs_rdata1[25:24];
-								st_data[(cnt+reg_op2*13*8) +: 2] <= vecregs_rdata1[27:26];
-								st_data[(cnt+reg_op2*14*8) +: 2] <= vecregs_rdata1[29:28];
-								st_data[(cnt+reg_op2*15*8) +: 2] <= vecregs_rdata1[31:30];
-								st_strb[cnt >> 3] <= 1;
-								st_strb[(cnt >> 3) + reg_op2] <= 1;
-								st_strb[(cnt >> 3) + 2*reg_op2] <= 1;
-								st_strb[(cnt >> 3) + 3*reg_op2] <= 1;
-								st_strb[(cnt >> 3) + 4*reg_op2] <= 1;
-								st_strb[(cnt >> 3) + 5*reg_op2] <= 1;
-								st_strb[(cnt >> 3) + 6*reg_op2] <= 1;
-								st_strb[(cnt >> 3) + 7*reg_op2] <= 1;
-								st_strb[(cnt >> 3) + 8*reg_op2] <= 1;
-								st_strb[(cnt >> 3) + 9*reg_op2] <= 1;
-								st_strb[(cnt >> 3) + 10*reg_op2] <= 1;
-								st_strb[(cnt >> 3) + 11*reg_op2] <= 1;
-								st_strb[(cnt >> 3) + 12*reg_op2] <= 1;
-								st_strb[(cnt >> 3) + 13*reg_op2] <= 1;
-								st_strb[(cnt >> 3) + 14*reg_op2] <= 1;
-								st_strb[(cnt >> 3) + 15*reg_op2] <= 1;
-								cnt <= cnt + 16*8*reg_op2;
-								mem_str_ready <= 1; 
-							end
-							if(vap == 10'b0000000100) begin
-								$display("vap condition, vecreg_data: %x, cnt:%d, time:%d", vecregs_rdata1, cnt, $time);
-								st_data[cnt +: 4] <= vecregs_rdata1[3:0];
-								st_data[(cnt+reg_op2*8) +: 4] <= vecregs_rdata1[7:4];
-								st_data[(cnt+reg_op2*2*8) +: 4] <= vecregs_rdata1[11:8];
-								st_data[(cnt+reg_op2*3*8) +: 4] <= vecregs_rdata1[15:12];
-								st_data[(cnt+reg_op2*4*8) +: 4] <= vecregs_rdata1[19:16];
-								st_data[(cnt+reg_op2*5*8) +: 4] <= vecregs_rdata1[23:20];
-								st_data[(cnt+reg_op2*6*8) +: 4] <= vecregs_rdata1[27:24];
-								st_data[(cnt+reg_op2*7*8) +: 4] <= vecregs_rdata1[31:28];
-								st_strb[cnt >> 3] <= 1;
-								st_strb[(cnt >> 3) + reg_op2] <= 1;
-								st_strb[(cnt >> 3) + 2*reg_op2] <= 1;
-								st_strb[(cnt >> 3) + 3*reg_op2] <= 1;
-								st_strb[(cnt >> 3) + 4*reg_op2] <= 1;
-								st_strb[(cnt >> 3) + 5*reg_op2] <= 1;
-								st_strb[(cnt >> 3) + 6*reg_op2] <= 1;
-								st_strb[(cnt >> 3) + 7*reg_op2] <= 1;
-								cnt <= cnt + 8*8*reg_op2;
-								mem_str_ready <= 1; 
-							end
-							else if(vap == 10'b0000001000) begin
-								$display("vecreg_data: %x, cnt:%d, time:%d", vecregs_rdata1, cnt, $time);
-								st_data[cnt +: 8] <= vecregs_rdata1[7:0];
-								st_data[(cnt+reg_op2*8) +: 8] <= vecregs_rdata1[15:8];
-								st_data[(cnt+reg_op2*2*8) +: 8] <= vecregs_rdata1[23:16];
-								st_data[(cnt+reg_op2*3*8) +: 8] <= vecregs_rdata1[31:24];
-								st_strb[cnt >> 3] <= 1;
-								st_strb[(cnt >> 3) + reg_op2] <= 1;
-								st_strb[(cnt >> 3) + 2*reg_op2] <= 1;
-								st_strb[(cnt >> 3) + 3*reg_op2] <= 1;
-								cnt <= cnt + 4*8*reg_op2;
-								mem_str_ready <= 1; 
-							end
-							condition_bit <= 0;
-						end
-					end
-				end
-				3: begin
-                   	mem_str_ready <= 0;
-					if(mem_ready == 1) begin
-						// $display("Inside mem_interface, mem_wdata:%x, ind1:%d, ind2:%d, time:%d",st_data[ind1 +: 32], ind1, ind2, $time);
-						if(instr_vstore || instr_vstore_str || instr_vsesvarp || instr_vseuvarp) begin
-							mem_wdata <= st_data[ind1 +: 32]; //reads 32 bits
-							mem_wstrb <= st_strb[ind2 +: 4];
-							ind1 <= ind1 + 32;
-							ind2 <= ind2 + 4;
-						end
-						mem_str_ready <= 1; //str_ready will be 1 irrespective of the instruction
-					end
+always @(posedge clk) begin
+    // (* full_case *)
+    if(pcpi_valid) begin
+        // $display("mem_rdata:%x, time:%d",mem_rdata,$time);
+        case (mem_wordsize)
+            0: begin
+                mem_str_ready2 <= 0;
+                if(mem_ready == 1) begin
+                    // $display("Inside mem_interface, mem_rdata:%x, time:%d", mem_rdata,$time);
+                    if(instr_vload || instr_vload_str || instr_vleuvarp || instr_vlesvarp) begin
+                        mem_rdata_word <= mem_rdata; //reads 32 bits
+                    end
+                    mem_str_ready2 <= 1; //str_ready will be 1 irrespective of the instruction
                 end
-			endcase
-		end
-	end
+            end
+            1: begin
+                mem_str_ready <= 0;
+                if(instr_vload || instr_vload_str) begin
+                    if(SEW == 10'b0000001000) begin
+                        // $display("Inside mem_wsize1,ind1:%d, mem_rdata_word:%x, time:%d",ind1, mem_rdata_word, $time);
+                        mem_rdata_word[7:0]   <= ld_data[ind1 +: 8];
+                        mem_rdata_word[15:8]  <= ld_data[(ind1+reg_op2*8) +: 8];
+                        mem_rdata_word[23:16]  <= ld_data[(ind1+reg_op2*16) +: 8];
+                        mem_rdata_word[31:24] <= ld_data[(ind1+reg_op2*24) +: 8];
+                        mem_str_ready <= 1; 
+                        ind1 <= ind1 + 4*8*reg_op2;
+                    end
+                    else if(SEW == 10'b0000010000) begin
+                        // $display("Inside mem_wsize1,ind1:%d, mem_rdata_word:%x, time:%d",ind1, mem_rdata_word, $time);
+                        mem_rdata_word[15:0]   <= ld_data[ind1 +: 16];
+                        mem_rdata_word[31:16]  <= ld_data[(ind1+reg_op2*8) +: 16];
+                        mem_str_ready <= 1; 
+                        ind1 <= ind1 + 2*8*reg_op2;
+                    end
+                    //SEW is 32
+                    else if(SEW == 10'b0000100000) begin
+                        mem_rdata_word <= ld_data[ind1 +: 32];
+                        mem_str_ready <= 1; 
+                        ind1 <= ind1 + 8*reg_op2;
+                    end
+                end
+                else if(instr_vleuvarp || instr_vlesvarp) begin
+                    if(vap == 10'b0000000001) begin
+                        //The first addr will be ind1, next will be ind1+regop2*1*8, next reg_op2*2*8 etc
+                        mem_rdata_word[0]   <= ld_data[ind1 +: 1];
+                        mem_rdata_word[1]   <= ld_data[(ind1+reg_op2*8) +: 1];
+                        mem_rdata_word[2]   <= ld_data[(ind1+reg_op2*16) +: 1];
+                        mem_rdata_word[3]   <= ld_data[ind1+reg_op2*24 +: 1];
+                        mem_rdata_word[4]   <= ld_data[(ind1+reg_op2*32) +: 1];
+                        mem_rdata_word[5] <= ld_data[(ind1+reg_op2*40) +: 1];
+                        mem_rdata_word[6] <= ld_data[(ind1+reg_op2*48) +: 1];
+                        mem_rdata_word[7] <= ld_data[(ind1+reg_op2*56) +: 1];
+                        mem_rdata_word[8] <= ld_data[ind1+reg_op2*8*8 +: 1];
+                        mem_rdata_word[9] <= ld_data[(ind1+reg_op2*9*8) +: 1];
+                        mem_rdata_word[10] <= ld_data[(ind1+reg_op2*10*8) +: 1];
+                        mem_rdata_word[11] <= ld_data[ind1+reg_op2*11*8 +: 1];
+                        mem_rdata_word[12] <= ld_data[(ind1+reg_op2*12*8) +: 1];
+                        mem_rdata_word[13] <= ld_data[(ind1+reg_op2*13*8) +: 1];
+                        mem_rdata_word[14] <= ld_data[(ind1+reg_op2*14*8) +: 1];
+                        mem_rdata_word[15] <= ld_data[(ind1+reg_op2*15*8) +: 1];
+                        mem_rdata_word[16]   <= ld_data[(ind1 + reg_op2*8*16) +: 1];
+                        mem_rdata_word[17]   <= ld_data[(ind1+reg_op2*17*8) +: 1];
+                        mem_rdata_word[18]   <= ld_data[(ind1+reg_op2*18*8) +: 1];
+                        mem_rdata_word[19]   <= ld_data[ind1+reg_op2*19*8 +: 1];
+                        mem_rdata_word[20]   <= ld_data[(ind1+reg_op2*20*8) +: 1];
+                        mem_rdata_word[21] <= ld_data[(ind1+reg_op2*21*8) +: 1];
+                        mem_rdata_word[22] <= ld_data[(ind1+reg_op2*22*8) +: 1];
+                        mem_rdata_word[23] <= ld_data[(ind1+reg_op2*23*8) +: 1];
+                        mem_rdata_word[24] <= ld_data[ind1+reg_op2*24*8 +: 1];
+                        mem_rdata_word[25] <= ld_data[(ind1+reg_op2*25*8) +: 1];
+                        mem_rdata_word[26] <= ld_data[(ind1+reg_op2*26*8) +: 1];
+                        mem_rdata_word[27] <= ld_data[ind1+reg_op2*27*8 +: 1];
+                        mem_rdata_word[28] <= ld_data[(ind1+reg_op2*28*8) +: 1];
+                        mem_rdata_word[29] <= ld_data[(ind1+reg_op2*29*8) +: 1];
+                        mem_rdata_word[30] <= ld_data[(ind1+reg_op2*30*8) +: 1];
+                        mem_rdata_word[31] <= ld_data[(ind1+reg_op2*31*8) +: 1];
+                        mem_str_ready <= 1; 
+                        ind1 <= ind1 + 32*8*reg_op2;
+                    end
+                    else if(vap == 10'b0000000010) begin
+                        //The first addr will be ind1, next will be ind1+regop2*1*8, next reg_op2*2*8 etc
+                        mem_rdata_word[1:0]   <= ld_data[ind1 +: 2];
+                        mem_rdata_word[3:2]   <= ld_data[(ind1+reg_op2*8) +: 2];
+                        mem_rdata_word[5:4]   <= ld_data[(ind1+reg_op2*16) +: 2];
+                        mem_rdata_word[7:6]   <= ld_data[ind1+reg_op2*24 +: 2];
+                        mem_rdata_word[9:8]   <= ld_data[(ind1+reg_op2*32) +: 2];
+                        mem_rdata_word[11:10] <= ld_data[(ind1+reg_op2*40) +: 2];
+                        mem_rdata_word[13:12] <= ld_data[(ind1+reg_op2*48) +: 2];
+                        mem_rdata_word[15:14] <= ld_data[(ind1+reg_op2*56) +: 2];
+                        mem_rdata_word[17:16] <= ld_data[ind1+reg_op2*8*8 +: 2];
+                        mem_rdata_word[19:18] <= ld_data[(ind1+reg_op2*9*8) +: 2];
+                        mem_rdata_word[21:20] <= ld_data[(ind1+reg_op2*10*8) +: 2];
+                        mem_rdata_word[23:22] <= ld_data[ind1+reg_op2*11*8 +: 2];
+                        mem_rdata_word[25:24] <= ld_data[(ind1+reg_op2*12*8) +: 2];
+                        mem_rdata_word[27:26] <= ld_data[(ind1+reg_op2*13*8) +: 2];
+                        mem_rdata_word[29:28] <= ld_data[(ind1+reg_op2*14*8) +: 2];
+                        mem_rdata_word[31:30] <= ld_data[(ind1+reg_op2*15*8) +: 2];
+                        mem_str_ready <= 1; 
+                        ind1 <= ind1 + 16*8*reg_op2;
+                    end
+                    else if(vap == 10'b0000000011) begin
+                        //The first addr will be ind1, next will be ind1+regop2*1*8, next reg_op2*2*8 etc
+                        mem_rdata_word[2:0]   <= ld_data[ind1 +: 3];
+                        mem_rdata_word[5:3]   <= ld_data[(ind1+reg_op2*8) +: 3];
+                        mem_rdata_word[8:6]   <= ld_data[(ind1+reg_op2*16) +: 3];
+                        mem_rdata_word[11:9]   <= ld_data[ind1+reg_op2*24 +: 3];
+                        mem_rdata_word[14:12]   <= ld_data[(ind1+reg_op2*32) +: 3];
+                        mem_rdata_word[17:15] <= ld_data[(ind1+reg_op2*40) +: 3];
+                        mem_rdata_word[20:18] <= ld_data[(ind1+reg_op2*48) +: 3];
+                        mem_rdata_word[23:21] <= ld_data[(ind1+reg_op2*56) +: 3];
+                        mem_rdata_word[26:24] <= ld_data[ind1+reg_op2*8*8 +: 3];
+                        mem_rdata_word[29:27] <= ld_data[(ind1+reg_op2*9*8) +: 3];
+                        mem_rdata_word[31:30] <= ld_data[(ind1+reg_op2*10*8) +: 2];
+                        mem_str_ready <= 1; 
+                        ind1 <= ind1 + 10*8*reg_op2 + 2;
+                    end
+                    else if(vap == 10'b0000000100) begin
+                        // $display("Inside mem_wsize2,ind1:%d, mem_rdata_word:%x, time:%d",ind1, mem_rdata_word, $time);
+                        //The first addr will be ind1, next will be ind1+regop2*1*8, next reg_op2*2*8 etc
+                        mem_rdata_word[3:0]   <= ld_data[ind1 +: 4];
+                        mem_rdata_word[7:4]   <= ld_data[(ind1+reg_op2*8) +: 4];
+                        mem_rdata_word[11:8]  <= ld_data[(ind1+reg_op2*16) +: 4];
+                        mem_rdata_word[15:12] <= ld_data[ind1+reg_op2*24 +: 4];
+                        mem_rdata_word[19:16] <= ld_data[(ind1+reg_op2*32) +: 4];
+                        mem_rdata_word[23:20] <= ld_data[(ind1+reg_op2*40) +: 4];
+                        mem_rdata_word[27:24] <= ld_data[(ind1+reg_op2*48) +: 4];
+                        mem_rdata_word[31:28] <= ld_data[(ind1+reg_op2*56) +: 4];
+                        mem_str_ready <= 1; 
+                        ind1 <= ind1 + 8*8*reg_op2;
+                    end
+                    if(vap == 10'b0000001000) begin
+                        // $display("Inside mem_wsize1,ind1:%d, mem_rdata_word:%x, time:%d",ind1, mem_rdata_word, $time);
+                        mem_rdata_word[7:0]   <= ld_data[ind1 +: 8];
+                        mem_rdata_word[15:8]  <= ld_data[(ind1+reg_op2*8) +: 8];
+                        mem_rdata_word[23:16]  <= ld_data[(ind1+reg_op2*16) +: 8];
+                        mem_rdata_word[31:24] <= ld_data[(ind1+reg_op2*24) +: 8];
+                        mem_str_ready <= 1; 
+                        ind1 <= ind1 + 4*8*reg_op2;
+                    end
+                    if(vap == 10'b0000001010) begin
+                        // $display("Inside mem_wsize1,ind1:%d, mem_rdata_word:%x, time:%d",ind1, mem_rdata_word, $time);
+                        mem_rdata_word[9:0]   <= ld_data[ind1 +: 10];
+                        mem_rdata_word[19:10]  <= ld_data[(ind1+reg_op2*8) +: 10];
+                        mem_rdata_word[29:20]  <= ld_data[(ind1+reg_op2*16) +: 10];
+                        mem_rdata_word[31:30] <= ld_data[(ind1+reg_op2*24) +: 2];
+                        mem_str_ready <= 1; 
+                        ind1 <= ind1 + 4*8*reg_op2;
+                    end
+                end
+            end
+            2:  begin
+                if(condition_bit == 1) begin
+                    mem_str_ready <= 0;
+                    if(instr_vstore || instr_vstore_str) begin
+                        vecregs_rstrb1 <= 1 << (temp_count2+1);
+                        if(SEW == 10'b0000001000) begin
+                            $display("vecreg_data: %x, cnt:%d, time:%d", vecregs_rdata1, cnt, $time);
+                            st_data[cnt +: 8] <= vecregs_rdata1[7:0];
+                            st_data[(cnt+reg_op2*8) +: 8] <= vecregs_rdata1[15:8];
+                            st_data[(cnt+reg_op2*2*8) +: 8] <= vecregs_rdata1[23:16];
+                            st_data[(cnt+reg_op2*3*8) +: 8] <= vecregs_rdata1[31:24];
+                            st_strb[cnt >> 3] <= 1;
+                            st_strb[(cnt >> 3) + reg_op2] <= 1;
+                            st_strb[(cnt >> 3) + 2*reg_op2] <= 1;
+                            st_strb[(cnt >> 3) + 3*reg_op2] <= 1;
+                            cnt <= cnt + 4*8*reg_op2;
+                            mem_str_ready <= 1; 
+                        end
+                        //SEW is 16
+                        else if(SEW == 10'b0000010000) begin
+                            st_data[cnt +: 16] <= vecregs_rdata1[15:0];
+                            st_data[(cnt+reg_op2*8) +: 16] <= vecregs_rdata1[31:16];
+                            st_strb[(cnt >> 3) +: 2] <= 2'b11;
+                            st_strb[((cnt >> 3) + reg_op2) +: 2] <= 2'b11;
+                            cnt <= cnt + 2*8*reg_op2;
+                            mem_str_ready <= 1; 
+                        end
+                        //SEW is 32
+                        else if(SEW == 10'b0000100000) begin
+                            st_data[cnt +: 32] <= vecregs_rdata1;
+                            st_strb[(cnt >> 3) +: 4] <= 4'b1111;
+                            cnt <= cnt + 8*reg_op2;
+                            mem_str_ready <= 1; 
+                        end
+                        condition_bit <= 0;
+                    end
+                    else if(instr_vseuvarp || instr_vsesvarp) begin
+                        //SEW is 1
+                        if(vap == 10'b0000000001) begin
+                            $display("vecreg_data: %x, cnt:%d, time:%d", vecregs_rdata1, cnt, $time);
+                            st_data[cnt +: 1] <= vecregs_rdata1[0];
+                            st_data[(cnt+reg_op2*8) +: 1] <= vecregs_rdata1[1];
+                            st_data[(cnt+reg_op2*2*8) +: 1] <= vecregs_rdata1[2];
+                            st_data[(cnt+reg_op2*3*8) +: 1] <= vecregs_rdata1[3];
+                            st_data[(cnt+reg_op2*4*8) +: 1] <= vecregs_rdata1[4];
+                            st_data[(cnt+reg_op2*5*8) +: 1] <= vecregs_rdata1[5];
+                            st_data[(cnt+reg_op2*6*8) +: 1] <= vecregs_rdata1[6];
+                            st_data[(cnt+reg_op2*7*8) +: 1] <= vecregs_rdata1[7];
+                            st_data[(cnt+reg_op2*8*8) +: 1] <= vecregs_rdata1[8];
+                            st_data[(cnt+reg_op2*9*8) +: 1] <= vecregs_rdata1[9];
+                            st_data[(cnt+reg_op2*10*8) +: 1] <= vecregs_rdata1[10];
+                            st_data[(cnt+reg_op2*11*8) +: 1] <= vecregs_rdata1[11];
+                            st_data[(cnt+reg_op2*12*8) +: 1] <= vecregs_rdata1[12];
+                            st_data[(cnt+reg_op2*13*8) +: 1] <= vecregs_rdata1[13];
+                            st_data[(cnt+reg_op2*14*8) +: 1] <= vecregs_rdata1[14];
+                            st_data[(cnt+reg_op2*15*8) +: 1] <= vecregs_rdata1[15];
+                            st_data[(cnt+reg_op2*16*8) +: 1] <= vecregs_rdata1[16];
+                            st_data[(cnt+reg_op2*17*8) +: 1] <= vecregs_rdata1[17];
+                            st_data[(cnt+reg_op2*18*8) +: 1] <= vecregs_rdata1[18];
+                            st_data[(cnt+reg_op2*19*8) +: 1] <= vecregs_rdata1[19];
+                            st_data[(cnt+reg_op2*20*8) +: 1] <= vecregs_rdata1[20];
+                            st_data[(cnt+reg_op2*21*8) +: 1] <= vecregs_rdata1[21];
+                            st_data[(cnt+reg_op2*22*8) +: 1] <= vecregs_rdata1[22];
+                            st_data[(cnt+reg_op2*23*8) +: 1] <= vecregs_rdata1[23];
+                            st_data[(cnt+reg_op2*24*8) +: 1] <= vecregs_rdata1[24];
+                            st_data[(cnt+reg_op2*25*8) +: 1] <= vecregs_rdata1[25];
+                            st_data[(cnt+reg_op2*26*8) +: 1] <= vecregs_rdata1[26];
+                            st_data[(cnt+reg_op2*27*8) +: 1] <= vecregs_rdata1[27];
+                            st_data[(cnt+reg_op2*28*8) +: 1] <= vecregs_rdata1[28];
+                            st_data[(cnt+reg_op2*29*8) +: 1] <= vecregs_rdata1[29];
+                            st_data[(cnt+reg_op2*30*8) +: 1] <= vecregs_rdata1[30];
+                            st_data[(cnt+reg_op2*31*8) +: 1] <= vecregs_rdata1[31];
+                            st_strb[cnt >> 3] <= 1;
+                            st_strb[(cnt >> 3) + reg_op2] <= 1;
+                            st_strb[(cnt >> 3) + 2*reg_op2] <= 1;
+                            st_strb[(cnt >> 3) + 3*reg_op2] <= 1;
+                            st_strb[(cnt >> 3) + 4*reg_op2] <= 1;
+                            st_strb[(cnt >> 3) + 5*reg_op2] <= 1;
+                            st_strb[(cnt >> 3) + 6*reg_op2] <= 1;
+                            st_strb[(cnt >> 3) + 7*reg_op2] <= 1;
+                            st_strb[(cnt >> 3) + 8*reg_op2] <= 1;
+                            st_strb[(cnt >> 3) + 9*reg_op2] <= 1;
+                            st_strb[(cnt >> 3) + 10*reg_op2] <= 1;
+                            st_strb[(cnt >> 3) + 11*reg_op2] <= 1;
+                            st_strb[(cnt >> 3) + 12*reg_op2] <= 1;
+                            st_strb[(cnt >> 3) + 13*reg_op2] <= 1;
+                            st_strb[(cnt >> 3) + 14*reg_op2] <= 1;
+                            st_strb[(cnt >> 3) + 15*reg_op2] <= 1;
+                            st_strb[(cnt >> 3) + 16*reg_op2] <= 1;
+                            st_strb[(cnt >> 3) + 17*reg_op2] <= 1;
+                            st_strb[(cnt >> 3) + 18*reg_op2] <= 1;
+                            st_strb[(cnt >> 3) + 19*reg_op2] <= 1;
+                            st_strb[(cnt >> 3) + 20*reg_op2] <= 1;
+                            st_strb[(cnt >> 3) + 21*reg_op2] <= 1;
+                            st_strb[(cnt >> 3) + 22*reg_op2] <= 1;
+                            st_strb[(cnt >> 3) + 23*reg_op2] <= 1;
+                            st_strb[(cnt >> 3) + 24*reg_op2] <= 1;
+                            st_strb[(cnt >> 3) + 25*reg_op2] <= 1;
+                            st_strb[(cnt >> 3) + 26*reg_op2] <= 1;
+                            st_strb[(cnt >> 3) + 27*reg_op2] <= 1;
+                            st_strb[(cnt >> 3) + 28*reg_op2] <= 1;
+                            st_strb[(cnt >> 3) + 29*reg_op2] <= 1;
+                            st_strb[(cnt >> 3) + 30*reg_op2] <= 1;
+                            st_strb[(cnt >> 3) + 31*reg_op2] <= 1;
+                            cnt <= cnt + 32*8*reg_op2;
+                            mem_str_ready <= 1; 
+                        end
+                        if(vap == 10'b0000000010) begin
+                            $display("vecreg_data: %x, cnt:%d, time:%d", vecregs_rdata1, cnt, $time);
+                            st_data[cnt +: 2] <= vecregs_rdata1[1:0];
+                            st_data[(cnt+reg_op2*8) +: 2] <= vecregs_rdata1[3:2];
+                            st_data[(cnt+reg_op2*2*8) +: 2] <= vecregs_rdata1[5:4];
+                            st_data[(cnt+reg_op2*3*8) +: 2] <= vecregs_rdata1[7:6];
+                            st_data[(cnt+reg_op2*4*8) +: 2] <= vecregs_rdata1[9:8];
+                            st_data[(cnt+reg_op2*5*8) +: 2] <= vecregs_rdata1[11:10];
+                            st_data[(cnt+reg_op2*6*8) +: 2] <= vecregs_rdata1[13:12];
+                            st_data[(cnt+reg_op2*7*8) +: 2] <= vecregs_rdata1[15:14];
+                            st_data[(cnt+reg_op2*8*8) +: 2] <= vecregs_rdata1[17:16];
+                            st_data[(cnt+reg_op2*9*8) +: 2] <= vecregs_rdata1[19:18];
+                            st_data[(cnt+reg_op2*10*8) +: 2] <= vecregs_rdata1[21:20];
+                            st_data[(cnt+reg_op2*11*8) +: 2] <= vecregs_rdata1[23:22];
+                            st_data[(cnt+reg_op2*12*8) +: 2] <= vecregs_rdata1[25:24];
+                            st_data[(cnt+reg_op2*13*8) +: 2] <= vecregs_rdata1[27:26];
+                            st_data[(cnt+reg_op2*14*8) +: 2] <= vecregs_rdata1[29:28];
+                            st_data[(cnt+reg_op2*15*8) +: 2] <= vecregs_rdata1[31:30];
+                            st_strb[cnt >> 3] <= 1;
+                            st_strb[(cnt >> 3) + reg_op2] <= 1;
+                            st_strb[(cnt >> 3) + 2*reg_op2] <= 1;
+                            st_strb[(cnt >> 3) + 3*reg_op2] <= 1;
+                            st_strb[(cnt >> 3) + 4*reg_op2] <= 1;
+                            st_strb[(cnt >> 3) + 5*reg_op2] <= 1;
+                            st_strb[(cnt >> 3) + 6*reg_op2] <= 1;
+                            st_strb[(cnt >> 3) + 7*reg_op2] <= 1;
+                            st_strb[(cnt >> 3) + 8*reg_op2] <= 1;
+                            st_strb[(cnt >> 3) + 9*reg_op2] <= 1;
+                            st_strb[(cnt >> 3) + 10*reg_op2] <= 1;
+                            st_strb[(cnt >> 3) + 11*reg_op2] <= 1;
+                            st_strb[(cnt >> 3) + 12*reg_op2] <= 1;
+                            st_strb[(cnt >> 3) + 13*reg_op2] <= 1;
+                            st_strb[(cnt >> 3) + 14*reg_op2] <= 1;
+                            st_strb[(cnt >> 3) + 15*reg_op2] <= 1;
+                            cnt <= cnt + 16*8*reg_op2;
+                            mem_str_ready <= 1; 
+                        end
+                        if(vap == 10'b0000000100) begin
+                            $display("vap condition, vecreg_data: %x, cnt:%d, time:%d", vecregs_rdata1, cnt, $time);
+                            st_data[cnt +: 4] <= vecregs_rdata1[3:0];
+                            st_data[(cnt+reg_op2*8) +: 4] <= vecregs_rdata1[7:4];
+                            st_data[(cnt+reg_op2*2*8) +: 4] <= vecregs_rdata1[11:8];
+                            st_data[(cnt+reg_op2*3*8) +: 4] <= vecregs_rdata1[15:12];
+                            st_data[(cnt+reg_op2*4*8) +: 4] <= vecregs_rdata1[19:16];
+                            st_data[(cnt+reg_op2*5*8) +: 4] <= vecregs_rdata1[23:20];
+                            st_data[(cnt+reg_op2*6*8) +: 4] <= vecregs_rdata1[27:24];
+                            st_data[(cnt+reg_op2*7*8) +: 4] <= vecregs_rdata1[31:28];
+                            st_strb[cnt >> 3] <= 1;
+                            st_strb[(cnt >> 3) + reg_op2] <= 1;
+                            st_strb[(cnt >> 3) + 2*reg_op2] <= 1;
+                            st_strb[(cnt >> 3) + 3*reg_op2] <= 1;
+                            st_strb[(cnt >> 3) + 4*reg_op2] <= 1;
+                            st_strb[(cnt >> 3) + 5*reg_op2] <= 1;
+                            st_strb[(cnt >> 3) + 6*reg_op2] <= 1;
+                            st_strb[(cnt >> 3) + 7*reg_op2] <= 1;
+                            cnt <= cnt + 8*8*reg_op2;
+                            mem_str_ready <= 1; 
+                        end
+                        else if(vap == 10'b0000001000) begin
+                            $display("vecreg_data: %x, cnt:%d, time:%d", vecregs_rdata1, cnt, $time);
+                            st_data[cnt +: 8] <= vecregs_rdata1[7:0];
+                            st_data[(cnt+reg_op2*8) +: 8] <= vecregs_rdata1[15:8];
+                            st_data[(cnt+reg_op2*2*8) +: 8] <= vecregs_rdata1[23:16];
+                            st_data[(cnt+reg_op2*3*8) +: 8] <= vecregs_rdata1[31:24];
+                            st_strb[cnt >> 3] <= 1;
+                            st_strb[(cnt >> 3) + reg_op2] <= 1;
+                            st_strb[(cnt >> 3) + 2*reg_op2] <= 1;
+                            st_strb[(cnt >> 3) + 3*reg_op2] <= 1;
+                            cnt <= cnt + 4*8*reg_op2;
+                            mem_str_ready <= 1; 
+                        end
+                        condition_bit <= 0;
+                    end
+                end
+            end
+            3: begin
+                mem_str_ready <= 0;
+                if(mem_ready == 1) begin
+                    // $display("Inside mem_interface, mem_wdata:%x, ind1:%d, ind2:%d, time:%d",st_data[ind1 +: 32], ind1, ind2, $time);
+                    if(instr_vstore || instr_vstore_str || instr_vsesvarp || instr_vseuvarp) begin
+                        mem_wdata <= st_data[ind1 +: 32]; //reads 32 bits
+                        mem_wstrb <= st_strb[ind2 +: 4];
+                        ind1 <= ind1 + 32;
+                        ind2 <= ind2 + 4;
+                    end
+                    mem_str_ready <= 1; //str_ready will be 1 irrespective of the instruction
+                end
+            end
+        endcase
+    end
+end
 
 	//Variables used by Vadd and Vdot
 	reg [1:0] unpack_data; //States to unpack the data for alu
-	reg [9:0] unpack_index;
-	reg arth_data_ready, arth_data_ready2; //Used to synchronize the data forwarding to ALU
+	reg [9:0] unpack_index, unpack_index2;
+	reg arth_data_ready; //Used to synchronize the data forwarding to ALU
 	reg [alu_reg_len-1:0] opA, opB, opC; //Using these registers to unpack the data before sending it to the ALUs
 	wire [alu_reg_len-1:0] alu_out;
 	reg [31:0] alu_wdata;
@@ -425,82 +425,117 @@ module picorv32_pcpi_vec #(
 				1: begin
 					if(condition_bit == 1) begin
 						arth_data_ready <= 0;
-						arth_data_ready2 <= 0;
 						if(instr_vadd || instr_vmul || instr_vdot) begin
 							// vecregs_rstrb1 <= 1 << (temp_count2+1);
 							$display("vecreg_data: %x, port3:%d, time:%d", vecregs_rdata1, port3_data, $time);
-							arth_data_ready <= 1; 
-							condition_bit <= 0;
-							if(!instr_vdot) begin
-								condition_bit <= 0;
-								unpack_index <= unpack_index+32;
-							end
 							if(!port3_data) begin
+                            	vecregs_rstrb1 <= 1 << (temp_count2+1);
 								opA[unpack_index +: 32]  <= vecregs_rdata1[31:0];
 								opB[unpack_index +: 32]  <= vecregs_rdata2[31:0];
+                                unpack_index <= unpack_index+32;
 							end
-							else if(port3_data) begin
-								temp_var3 <= 1;
-								opC[unpack_index +: 32]  <= vecregs_rdata1[31:0];
-								vecregs_rstrb1 <= 1 << (temp_count2+1);
-								condition_bit <= 0;
-								unpack_index <= unpack_index+32;
-								arth_data_ready2 <= 1; 
-								arth_data_ready <= 1; 
+							else begin
+                                vecregs_rstrb1 <= 1 << (temp_count3+1);
+								opC[unpack_index2 +: 32]  <= vecregs_rdata1[31:0];
+								unpack_index2 <= unpack_index2+32;
 							end
+                            arth_data_ready <= 1; 
+							condition_bit <= 0;
 						end
-						else if(instr_vaddvarp || instr_vsubvarp || instr_vmulvarp) begin
-							vecregs_rstrb1 <= 1 << (temp_count2+1);
+						else if(instr_vaddvarp || instr_vsubvarp || instr_vmulvarp || instr_vdotvarp) begin
 							if(vap == 10'b0000000001) begin
 								// $display("vecreg_data: %x, cnt:%d, time:%d", vecregs_rdata1, cnt, $time);
 								//Converting sew of 1 to 8 bits to operate on them and zero padding on left side (for better multiplication)
-								opA[unpack_index +: 32]     <= {7'b0,vecregs_rdata1[3],7'b0,vecregs_rdata1[2],7'b0,vecregs_rdata1[1],7'b0,vecregs_rdata1[0]};
-								opA[unpack_index+32 +: 32]  <= {7'b0,vecregs_rdata1[7],7'b0,vecregs_rdata1[6],7'b0,vecregs_rdata1[5],7'b0,vecregs_rdata1[4]};
-								opA[unpack_index+64 +: 32]  <= {7'b0,vecregs_rdata1[11],7'b0,vecregs_rdata1[10],7'b0,vecregs_rdata1[9],7'b0,vecregs_rdata1[8]};
-								opA[unpack_index+96 +: 32]  <= {7'b0,vecregs_rdata1[15],7'b0,vecregs_rdata1[14],7'b0,vecregs_rdata1[13],7'b0,vecregs_rdata1[12]};
-								opA[unpack_index+128 +: 32] <= {7'b0,vecregs_rdata1[19],7'b0,vecregs_rdata1[18],7'b0,vecregs_rdata1[17],7'b0,vecregs_rdata1[16]};
-								opA[unpack_index+160 +: 32] <= {7'b0,vecregs_rdata1[23],7'b0,vecregs_rdata1[22],7'b0,vecregs_rdata1[21],7'b0,vecregs_rdata1[20]};
-								opA[unpack_index+192 +: 32] <= {7'b0,vecregs_rdata1[27],7'b0,vecregs_rdata1[26],7'b0,vecregs_rdata1[25],7'b0,vecregs_rdata1[24]};
-								opA[unpack_index+224 +: 32] <= {7'b0,vecregs_rdata1[31],7'b0,vecregs_rdata1[30],7'b0,vecregs_rdata1[29],7'b0,vecregs_rdata1[28]};
-								opB[unpack_index +: 32]     <= {vecregs_rdata2[3],7'b0,vecregs_rdata2[2],7'b0,vecregs_rdata2[1],7'b0,vecregs_rdata2[0],7'b0};
-								opB[unpack_index+32 +: 32]  <= {vecregs_rdata2[7],7'b0,vecregs_rdata2[6],7'b0,vecregs_rdata2[5],7'b0,vecregs_rdata2[4],7'b0};
-								opB[unpack_index+64 +: 32]  <= {vecregs_rdata2[11],7'b0,vecregs_rdata2[10],7'b0,vecregs_rdata2[9],7'b0,vecregs_rdata2[8],7'b0};
-								opB[unpack_index+96 +: 32]  <= {vecregs_rdata2[15],7'b0,vecregs_rdata2[14],7'b0,vecregs_rdata2[13],7'b0,vecregs_rdata2[12],7'b0};
-								opB[unpack_index+128 +: 32] <= {vecregs_rdata2[19],7'b0,vecregs_rdata2[18],7'b0,vecregs_rdata2[17],7'b0,vecregs_rdata2[16],7'b0};
-								opB[unpack_index+160 +: 32] <= {vecregs_rdata2[23],7'b0,vecregs_rdata2[22],7'b0,vecregs_rdata2[21],7'b0,vecregs_rdata2[20],7'b0};
-								opB[unpack_index+192 +: 32] <= {vecregs_rdata2[27],7'b0,vecregs_rdata2[26],7'b0,vecregs_rdata2[25],7'b0,vecregs_rdata2[24],7'b0};
-								opB[unpack_index+224 +: 32] <= {vecregs_rdata2[31],7'b0,vecregs_rdata2[30],7'b0,vecregs_rdata2[29],7'b0,vecregs_rdata2[28],7'b0};
-								unpack_index <= unpack_index+256;
+								if(!port3_data) begin
+                                    vecregs_rstrb1 <= 1 << (temp_count2+1);
+                                    opA[unpack_index +: 32]     <= {{7{vecregs_rdata1[3]}},vecregs_rdata1[3],{7{vecregs_rdata1[2]}},vecregs_rdata1[2],{7{vecregs_rdata1[1]}},vecregs_rdata1[1],{7{vecregs_rdata1[0]}},vecregs_rdata1[0]};
+                                    opA[unpack_index+32 +: 32]  <= {{7{vecregs_rdata1[7]}},vecregs_rdata1[7],{7{vecregs_rdata1[6]}},vecregs_rdata1[6],{7{vecregs_rdata1[5]}},vecregs_rdata1[5],{7{vecregs_rdata1[4]}},vecregs_rdata1[4]};
+                                    opA[unpack_index+64 +: 32]  <= {{7{vecregs_rdata1[11]}},vecregs_rdata1[11],{7{vecregs_rdata1[10]}},vecregs_rdata1[10],{7{vecregs_rdata1[9]}},vecregs_rdata1[9],{7{vecregs_rdata1[8]}},vecregs_rdata1[8]};
+                                    opA[unpack_index+96 +: 32]  <= {{7{vecregs_rdata1[15]}},vecregs_rdata1[15],{7{vecregs_rdata1[14]}},vecregs_rdata1[14],{7{vecregs_rdata1[13]}},vecregs_rdata1[13],{7{vecregs_rdata1[12]}},vecregs_rdata1[12]};
+                                    opA[unpack_index+128 +: 32] <= {{7{vecregs_rdata1[19]}},vecregs_rdata1[19],{7{vecregs_rdata1[18]}},vecregs_rdata1[18],{7{vecregs_rdata1[17]}},vecregs_rdata1[17],{7{vecregs_rdata1[16]}},vecregs_rdata1[16]};
+                                    opA[unpack_index+160 +: 32] <= {{7{vecregs_rdata1[23]}},vecregs_rdata1[23],{7{vecregs_rdata1[22]}},vecregs_rdata1[22],{7{vecregs_rdata1[21]}},vecregs_rdata1[21],{7{vecregs_rdata1[20]}},vecregs_rdata1[20]};
+                                    opA[unpack_index+192 +: 32] <= {{7{vecregs_rdata1[27]}},vecregs_rdata1[27],{7{vecregs_rdata1[26]}},vecregs_rdata1[26],{7{vecregs_rdata1[25]}},vecregs_rdata1[25],{7{vecregs_rdata1[24]}},vecregs_rdata1[24]};
+                                    opA[unpack_index+224 +: 32] <= {{7{vecregs_rdata1[31]}},vecregs_rdata1[31],{7{vecregs_rdata1[30]}},vecregs_rdata1[30],{7{vecregs_rdata1[29]}},vecregs_rdata1[29],{7{vecregs_rdata1[28]}},vecregs_rdata1[28]};
+                                    opB[unpack_index +: 32]     <= {vecregs_rdata2[3],7'b0,vecregs_rdata2[2],7'b0,vecregs_rdata2[1],7'b0,vecregs_rdata2[0],7'b0};
+                                    opB[unpack_index+32 +: 32]  <= {vecregs_rdata2[7],7'b0,vecregs_rdata2[6],7'b0,vecregs_rdata2[5],7'b0,vecregs_rdata2[4],7'b0};
+                                    opB[unpack_index+64 +: 32]  <= {vecregs_rdata2[11],7'b0,vecregs_rdata2[10],7'b0,vecregs_rdata2[9],7'b0,vecregs_rdata2[8],7'b0};
+                                    opB[unpack_index+96 +: 32]  <= {vecregs_rdata2[15],7'b0,vecregs_rdata2[14],7'b0,vecregs_rdata2[13],7'b0,vecregs_rdata2[12],7'b0};
+                                    opB[unpack_index+128 +: 32] <= {vecregs_rdata2[19],7'b0,vecregs_rdata2[18],7'b0,vecregs_rdata2[17],7'b0,vecregs_rdata2[16],7'b0};
+                                    opB[unpack_index+160 +: 32] <= {vecregs_rdata2[23],7'b0,vecregs_rdata2[22],7'b0,vecregs_rdata2[21],7'b0,vecregs_rdata2[20],7'b0};
+                                    opB[unpack_index+192 +: 32] <= {vecregs_rdata2[27],7'b0,vecregs_rdata2[26],7'b0,vecregs_rdata2[25],7'b0,vecregs_rdata2[24],7'b0};
+                                    opB[unpack_index+224 +: 32] <= {vecregs_rdata2[31],7'b0,vecregs_rdata2[30],7'b0,vecregs_rdata2[29],7'b0,vecregs_rdata2[28],7'b0};
+                                    unpack_index <= unpack_index+256;
+                                end
+                                else begin
+                                    vecregs_rstrb1 <= 1 << (temp_count3+1);
+                                    opC[unpack_index2 +: 32]     <= {{7{vecregs_rdata1[3]}},vecregs_rdata1[3],{7{vecregs_rdata1[2]}},vecregs_rdata1[2],{7{vecregs_rdata1[1]}},vecregs_rdata1[1],{7{vecregs_rdata1[0]}},vecregs_rdata1[0]};
+                                    opC[unpack_index2+32 +: 32]  <= {{7{vecregs_rdata1[7]}},vecregs_rdata1[7],{7{vecregs_rdata1[6]}},vecregs_rdata1[6],{7{vecregs_rdata1[5]}},vecregs_rdata1[5],{7{vecregs_rdata1[4]}},vecregs_rdata1[4]};
+                                    opC[unpack_index2+64 +: 32]  <= {{7{vecregs_rdata1[11]}},vecregs_rdata1[11],{7{vecregs_rdata1[10]}},vecregs_rdata1[10],{7{vecregs_rdata1[9]}},vecregs_rdata1[9],{7{vecregs_rdata1[8]}},vecregs_rdata1[8]};
+                                    opC[unpack_index2+96 +: 32]  <= {{7{vecregs_rdata1[15]}},vecregs_rdata1[15],{7{vecregs_rdata1[14]}},vecregs_rdata1[14],{7{vecregs_rdata1[13]}},vecregs_rdata1[13],{7{vecregs_rdata1[12]}},vecregs_rdata1[12]};
+                                    opC[unpack_index2+128 +: 32] <= {{7{vecregs_rdata1[19]}},vecregs_rdata1[19],{7{vecregs_rdata1[18]}},vecregs_rdata1[18],{7{vecregs_rdata1[17]}},vecregs_rdata1[17],{7{vecregs_rdata1[16]}},vecregs_rdata1[16]};
+                                    opC[unpack_index2+160 +: 32] <= {{7{vecregs_rdata1[23]}},vecregs_rdata1[23],{7{vecregs_rdata1[22]}},vecregs_rdata1[22],{7{vecregs_rdata1[21]}},vecregs_rdata1[21],{7{vecregs_rdata1[20]}},vecregs_rdata1[20]};
+                                    opC[unpack_index2+192 +: 32] <= {{7{vecregs_rdata1[27]}},vecregs_rdata1[27],{7{vecregs_rdata1[26]}},vecregs_rdata1[26],{7{vecregs_rdata1[25]}},vecregs_rdata1[25],{7{vecregs_rdata1[24]}},vecregs_rdata1[24]};
+                                    opC[unpack_index2+224 +: 32] <= {{7{vecregs_rdata1[31]}},vecregs_rdata1[31],{7{vecregs_rdata1[30]}},vecregs_rdata1[30],{7{vecregs_rdata1[29]}},vecregs_rdata1[29],{7{vecregs_rdata1[28]}},vecregs_rdata1[28]};
+                                    unpack_index2 <= unpack_index2+256;
+                                end
 								arth_data_ready <= 1; 
 							end
 							if(vap == 10'b0000000010) begin
 								// $display("vecreg_data1: %x, vecreg_data2:%x, index:%d, time:%d", vecregs_rdata1, vecregs_rdata2, unpack_index, $time);
-								opA[unpack_index +: 32]     <= {6'b0,vecregs_rdata1[7:6],6'b0,vecregs_rdata1[5:4],6'b0,vecregs_rdata1[3:2],6'b0,vecregs_rdata1[1:0]};
-								opA[unpack_index+32 +: 32]  <= {6'b0,vecregs_rdata1[15:14],6'b0,vecregs_rdata1[13:12],6'b0,vecregs_rdata1[11:10],6'b0,vecregs_rdata1[9:8]};
-								opA[unpack_index+64 +: 32]  <= {6'b0,vecregs_rdata1[23:22],6'b0,vecregs_rdata1[21:20],6'b0,vecregs_rdata1[19:18],6'b0,vecregs_rdata1[17:16]};
-								opA[unpack_index+96 +: 32]  <= {6'b0,vecregs_rdata1[31:30],6'b0,vecregs_rdata1[29:28],6'b0,vecregs_rdata1[27:26],6'b0,vecregs_rdata1[25:24]};
-								opB[unpack_index +: 32]     <= {vecregs_rdata2[7:6],6'b0,vecregs_rdata2[5:4],6'b0,vecregs_rdata2[3:2],6'b0,vecregs_rdata2[1:0],6'b0};
-								opB[unpack_index+32 +: 32]  <= {vecregs_rdata2[15:14],6'b0,vecregs_rdata2[13:12],6'b0,vecregs_rdata2[11:10],6'b0,vecregs_rdata2[9:8],6'b0};
-								opB[unpack_index+64 +: 32]  <= {vecregs_rdata2[23:22],6'b0,vecregs_rdata2[21:20],6'b0,vecregs_rdata2[19:18],6'b0,vecregs_rdata2[17:16],6'b0};
-								opB[unpack_index+96 +: 32]  <= {vecregs_rdata2[31:30],6'b0,vecregs_rdata2[29:28],6'b0,vecregs_rdata2[27:26],6'b0,vecregs_rdata2[25:24],6'b0};
-								unpack_index <= unpack_index+128;
+                                if(!port3_data) begin
+                                    vecregs_rstrb1 <= 1 << (temp_count2+1);
+                                    opA[unpack_index +: 32]     <= {{6{vecregs_rdata1[7]}},vecregs_rdata1[7:6],{6{vecregs_rdata1[5]}},vecregs_rdata1[5:4],{6{vecregs_rdata1[3]}},vecregs_rdata1[3:2],{6{vecregs_rdata1[1]}},vecregs_rdata1[1:0]};
+                                    opA[unpack_index+32 +: 32]  <= {{6{vecregs_rdata1[15]}},vecregs_rdata1[15:14],{6{vecregs_rdata1[13]}},vecregs_rdata1[13:12],{6{vecregs_rdata1[11]}},vecregs_rdata1[11:10],{6{vecregs_rdata1[9]}},vecregs_rdata1[9:8]};
+                                    opA[unpack_index+64 +: 32]  <= {{6{vecregs_rdata1[23]}},vecregs_rdata1[23:22],{6{vecregs_rdata1[21]}},vecregs_rdata1[21:20],{6{vecregs_rdata1[19]}},vecregs_rdata1[19:18],{6{vecregs_rdata1[17]}},vecregs_rdata1[17:16]};
+                                    opA[unpack_index+96 +: 32]  <= {{6{vecregs_rdata1[31]}},vecregs_rdata1[31:30],{6{vecregs_rdata1[29]}},vecregs_rdata1[29:28],{6{vecregs_rdata1[27]}},vecregs_rdata1[27:26],{6{vecregs_rdata1[25]}},vecregs_rdata1[25:24]};
+                                    opB[unpack_index +: 32]     <= {vecregs_rdata2[7:6],6'b0,vecregs_rdata2[5:4],6'b0,vecregs_rdata2[3:2],6'b0,vecregs_rdata2[1:0],6'b0};
+                                    opB[unpack_index+32 +: 32]  <= {vecregs_rdata2[15:14],6'b0,vecregs_rdata2[13:12],6'b0,vecregs_rdata2[11:10],6'b0,vecregs_rdata2[9:8],6'b0};
+                                    opB[unpack_index+64 +: 32]  <= {vecregs_rdata2[23:22],6'b0,vecregs_rdata2[21:20],6'b0,vecregs_rdata2[19:18],6'b0,vecregs_rdata2[17:16],6'b0};
+                                    opB[unpack_index+96 +: 32]  <= {vecregs_rdata2[31:30],6'b0,vecregs_rdata2[29:28],6'b0,vecregs_rdata2[27:26],6'b0,vecregs_rdata2[25:24],6'b0};
+                                    unpack_index <= unpack_index+128;
+                                end
+                                else begin
+                                    vecregs_rstrb1 <= 1 << (temp_count3+1);
+                                    opC[unpack_index2 +: 32]     <= {{6{vecregs_rdata1[7]}},vecregs_rdata1[7:6],{6{vecregs_rdata1[5]}},vecregs_rdata1[5:4],{6{vecregs_rdata1[3]}},vecregs_rdata1[3:2],{6{vecregs_rdata1[1]}},vecregs_rdata1[1:0]};
+                                    opC[unpack_index2+32 +: 32]  <= {{6{vecregs_rdata1[15]}},vecregs_rdata1[15:14],{6{vecregs_rdata1[13]}},vecregs_rdata1[13:12],{6{vecregs_rdata1[11]}},vecregs_rdata1[11:10],{6{vecregs_rdata1[9]}},vecregs_rdata1[9:8]};
+                                    opC[unpack_index2+64 +: 32]  <= {{6{vecregs_rdata1[23]}},vecregs_rdata1[23:22],{6{vecregs_rdata1[21]}},vecregs_rdata1[21:20],{6{vecregs_rdata1[19]}},vecregs_rdata1[19:18],{6{vecregs_rdata1[17]}},vecregs_rdata1[17:16]};
+                                    opC[unpack_index2+96 +: 32]  <= {{6{vecregs_rdata1[31]}},vecregs_rdata1[31:30],{6{vecregs_rdata1[29]}},vecregs_rdata1[29:28],{6{vecregs_rdata1[27]}},vecregs_rdata1[27:26],{6{vecregs_rdata1[25]}},vecregs_rdata1[25:24]};
+                                    unpack_index2 <= unpack_index2+128;
+                                end
 								arth_data_ready <= 1; 
 							end
 							if(vap == 10'b0000000100) begin
 								// $display("vecreg_data1: %x, vecreg_data2:%x, index:%d, time:%d", vecregs_rdata1, vecregs_rdata2, unpack_index, $time);
 								//Sign extending opA
-								opA[unpack_index +: 32]     <= {{4{vecregs_rdata1[15]}},vecregs_rdata1[15:12],{4{vecregs_rdata1[11]}},vecregs_rdata1[11:8],{4{vecregs_rdata1[7]}},vecregs_rdata1[7:4],{4{vecregs_rdata1[3]}},vecregs_rdata1[3:0]};
-								opA[unpack_index+32 +: 32]  <= {{4{vecregs_rdata1[31]}},vecregs_rdata1[31:28],{4{vecregs_rdata1[27]}},vecregs_rdata1[27:24],{4{vecregs_rdata1[23]}},vecregs_rdata1[23:20],{4{vecregs_rdata1[19]}},vecregs_rdata1[19:16]};
-								opB[unpack_index +: 32]     <= {vecregs_rdata2[15:12],4'b0,vecregs_rdata2[11:8],4'b0,vecregs_rdata2[7:4],4'b0,vecregs_rdata2[3:0],4'b0};
-								opB[unpack_index+32 +: 32]  <= {vecregs_rdata2[31:28],4'b0,vecregs_rdata2[27:24],4'b0,vecregs_rdata2[23:20],4'b0,vecregs_rdata2[19:16],4'b0};
-								unpack_index <= unpack_index+64;
+                                if(!port3_data) begin
+                                    vecregs_rstrb1 <= 1 << (temp_count2+1);
+                                    opA[unpack_index +: 32]     <= {{4{vecregs_rdata1[15]}},vecregs_rdata1[15:12],{4{vecregs_rdata1[11]}},vecregs_rdata1[11:8],{4{vecregs_rdata1[7]}},vecregs_rdata1[7:4],{4{vecregs_rdata1[3]}},vecregs_rdata1[3:0]};
+                                    opA[unpack_index+32 +: 32]  <= {{4{vecregs_rdata1[31]}},vecregs_rdata1[31:28],{4{vecregs_rdata1[27]}},vecregs_rdata1[27:24],{4{vecregs_rdata1[23]}},vecregs_rdata1[23:20],{4{vecregs_rdata1[19]}},vecregs_rdata1[19:16]};
+                                    opB[unpack_index +: 32]     <= {vecregs_rdata2[15:12],4'b0,vecregs_rdata2[11:8],4'b0,vecregs_rdata2[7:4],4'b0,vecregs_rdata2[3:0],4'b0};
+                                    opB[unpack_index+32 +: 32]  <= {vecregs_rdata2[31:28],4'b0,vecregs_rdata2[27:24],4'b0,vecregs_rdata2[23:20],4'b0,vecregs_rdata2[19:16],4'b0};
+                                    unpack_index <= unpack_index+64;
+                                end
+                                else begin
+                                    vecregs_rstrb1 <= 1 << (temp_count3+1);
+                                    opC[unpack_index2 +: 32]     <= {{4{vecregs_rdata1[15]}},vecregs_rdata1[15:12],{4{vecregs_rdata1[11]}},vecregs_rdata1[11:8],{4{vecregs_rdata1[7]}},vecregs_rdata1[7:4],{4{vecregs_rdata1[3]}},vecregs_rdata1[3:0]};
+								    opC[unpack_index2+32 +: 32]  <= {{4{vecregs_rdata1[31]}},vecregs_rdata1[31:28],{4{vecregs_rdata1[27]}},vecregs_rdata1[27:24],{4{vecregs_rdata1[23]}},vecregs_rdata1[23:20],{4{vecregs_rdata1[19]}},vecregs_rdata1[19:16]};
+                                    unpack_index2 <= unpack_index2+64;
+                                end
 								arth_data_ready <= 1; 
 							end
 							else if(vap == 10'b0000001000) begin
 								// $display("vecreg_data: %x, cnt:%d, time:%d", vecregs_rdata1, cnt, $time);
-								opA[unpack_index +: 32]  <= vecregs_rdata1[31:0];
-								opB[unpack_index +: 32]  <= vecregs_rdata2[31:0];
-								unpack_index <= unpack_index+32;
+                                if(!port3_data) begin
+                                    vecregs_rstrb1 <= 1 << (temp_count2+1);
+                                    opA[unpack_index +: 32]  <= vecregs_rdata1[31:0];
+                                    opB[unpack_index +: 32]  <= vecregs_rdata2[31:0];
+							    	unpack_index <= unpack_index+32;
+                                end
+                                else begin
+                                    vecregs_rstrb1 <= 1 << (temp_count3+1);
+                                    opC[unpack_index2 +: 32]  <= vecregs_rdata1[31:0];
+                                    unpack_index2 <= unpack_index2+32;
+                                end
 								arth_data_ready <= 1; 
 							end
 							condition_bit <= 0;
@@ -509,8 +544,8 @@ module picorv32_pcpi_vec #(
 				end
 				2: begin
 					arth_data_ready <= 0;
-					if(instr_vadd || instr_vmul) begin
-						alu_wdata[31:0]   <= alu_out[31:0];
+					if(instr_vadd || instr_vmul || instr_vdot) begin
+						alu_wdata[31:0]   <= alu_out[ind1 +: 32];
 						arth_data_ready <= 1; 
 						ind1 <= ind1 + 4*8;
 					end
@@ -546,7 +581,7 @@ module picorv32_pcpi_vec #(
 							mem_rdata_word[26]  <= alu_out[(ind1+26*8) +: 1];
 							mem_rdata_word[27]  <= alu_out[ind1+27*8 +: 1];
 							mem_rdata_word[28]  <= alu_out[(ind1+28*8) +: 1];
-							mem_rdata_word[39]  <= alu_out[(ind1+29*8) +: 1];
+							mem_rdata_word[29]  <= alu_out[(ind1+29*8) +: 1];
 							mem_rdata_word[30]  <= alu_out[(ind1+30*8) +: 1];
 							mem_rdata_word[31]  <= alu_out[(ind1+31*8) +: 1];
 							arth_data_ready <= 1; 
@@ -554,22 +589,23 @@ module picorv32_pcpi_vec #(
 						end
 						else if(vap == 10'b0000000010) begin
 							//The first addr will be ind1, next will be ind1+regop2*1*8, next reg_op2*2*8 etc
-							mem_rdata_word[1:0]   <= alu_out[ind1 +: 2];
-							mem_rdata_word[3:2]   <= alu_out[(ind1+8) +: 2];
-							mem_rdata_word[5:4]   <= alu_out[(ind1+16) +: 2];
-							mem_rdata_word[7:6]   <= alu_out[ind1+24 +: 2];
-							mem_rdata_word[9:8]   <= alu_out[(ind1+32) +: 2];
-							mem_rdata_word[11:10] <= alu_out[(ind1+40) +: 2];
-							mem_rdata_word[13:12] <= alu_out[(ind1+48) +: 2];
-							mem_rdata_word[15:14] <= alu_out[(ind1+56) +: 2];
-							mem_rdata_word[17:16] <= alu_out[ind1+8*8 +: 2];
-							mem_rdata_word[19:18] <= alu_out[(ind1+9*8) +: 2];
-							mem_rdata_word[21:20] <= alu_out[(ind1+10*8) +: 2];
-							mem_rdata_word[23:22] <= alu_out[ind1+11*8 +: 2];
-							mem_rdata_word[25:24] <= alu_out[(ind1+12*8) +: 2];
-							mem_rdata_word[27:26] <= alu_out[(ind1+13*8) +: 2];
-							mem_rdata_word[29:28] <= alu_out[(ind1+14*8) +: 2];
-							mem_rdata_word[31:30] <= alu_out[(ind1+15*8) +: 2];
+							// $display("aluout:%b, ind1:%d, time:%d", alu_out[95:0], ind1, $time);
+							alu_wdata[1:0]   <= alu_out[ind1 +: 2];
+							alu_wdata[3:2]   <= alu_out[(ind1+8) +: 2];
+							alu_wdata[5:4]   <= alu_out[(ind1+16) +: 2];
+							alu_wdata[7:6]   <= alu_out[ind1+24 +: 2];
+							alu_wdata[9:8]   <= alu_out[(ind1+32) +: 2];
+							alu_wdata[11:10] <= alu_out[(ind1+40) +: 2];
+							alu_wdata[13:12] <= alu_out[(ind1+48) +: 2];
+							alu_wdata[15:14] <= alu_out[(ind1+56) +: 2];
+							alu_wdata[17:16] <= alu_out[ind1+8*8 +: 2];
+							alu_wdata[19:18] <= alu_out[(ind1+9*8) +: 2];
+							alu_wdata[21:20] <= alu_out[(ind1+10*8) +: 2];
+							alu_wdata[23:22] <= alu_out[ind1+11*8 +: 2];
+							alu_wdata[25:24] <= alu_out[(ind1+12*8) +: 2];
+							alu_wdata[27:26] <= alu_out[(ind1+13*8) +: 2];
+							alu_wdata[29:28] <= alu_out[(ind1+14*8) +: 2];
+							alu_wdata[31:30] <= alu_out[(ind1+15*8) +: 2];
 							arth_data_ready <= 1; 
 							ind1 <= ind1 + 16*8;
 						end
@@ -641,9 +677,9 @@ module picorv32_pcpi_vec #(
 			vstore_bit <= 2'b00; //Resetting the vstore bit
 			mem_wstrb <= 4'b0;
 			unpack_index <= 0;
+            unpack_index2 <= 0;
 			unpack_data <= 0; //Used in case statement
 			arth_data_ready <= 0;
-			arth_data_ready2 <= 0;
 			port3_data <= 0;
 		end
 		else begin
@@ -723,10 +759,10 @@ module picorv32_pcpi_vec #(
 	reg [5:0] ind2; //Used to index the strb
     reg [5:0] no_words; //No of words to read
 	reg [5:0] new_no_words;
-	reg [5:0] read_count; //Used in ld_mem state
+	reg [5:0] read_count, read_count2; //Used in ld_mem state
 	reg [4:0] bits_remaining; //Bits remaining after words are loaded
     reg [5:0] temp_count; //Used for indexing (strb in vector regs)
-	reg [4:0] temp_count2; //Used for reading data from vec reg during store
+	reg [4:0] temp_count2, temp_count3; //Used for reading data from vec reg during store
 	//Variables used by Vadd and Vdot
 	wire done1, done2, done3, done4, done5, done6, done7, done8, done9, done10, done11, done12, done13, done14, done15, done16;
 	wire alu_done; //Used to check whether all the ALUs have returned the outputs or not
@@ -880,7 +916,7 @@ module picorv32_pcpi_vec #(
 							read_count <= 0;
 							//Number of bits to read in each cycle
 							// if(SEW == 10'b0000100000)
-							mem_wordsize = 0;
+							mem_wordsize <= 0;
 						end
 						(instr_vload_str): begin
 							$display("Inside v_load_stride condition, time:%d", $time);
@@ -904,7 +940,7 @@ module picorv32_pcpi_vec #(
 							read_count <= 0;
 							//Number many bits to read in each cycle
 							// if(SEW == 10'b0000100000)
-							mem_wordsize = 0;
+							mem_wordsize <= 0;
 						end
 						(instr_vleuvarp): begin
 							$display("Inside vap_unit_load condition, time:%d", $time);
@@ -928,7 +964,7 @@ module picorv32_pcpi_vec #(
 							//This is used when no of mem_reads crosses flat_reg_len bits
 							new_no_words <= (flat_reg_len >> 8)*vap;  //Derives from { flat_reg_len*SEW / (32*8*stride) } and stride is 1
 							read_count <= 0;
-							mem_wordsize = 0;
+							mem_wordsize <= 0;
 						end
 						(instr_vlesvarp): begin
 							$display("Inside vap_load_stride condition time:%d", $time);
@@ -950,7 +986,7 @@ module picorv32_pcpi_vec #(
 							//This is used when no of mem_reads crosses flat_reg_len bits
 							new_no_words <= ((flat_reg_len >> 8)*vap) / reg_op2;  //Derives from { flat_reg_len*SEW / (32*8*stride) }
 							read_count <= 0;
-							mem_wordsize = 0;
+							mem_wordsize <= 0;
 						end
 						(instr_vstore): begin
 							$display("Inside v_store condition, time:%d", $time);
@@ -1007,7 +1043,7 @@ module picorv32_pcpi_vec #(
 							read_count <= 0;
 							st_data <= 0;
 							st_strb <= 0;
-							// mem_wordsize <= 2;
+							mem_wordsize <= 2;
 						end
 						(instr_vseuvarp): begin
 							$display("Inside vap_unit_store condition, time:%d", $time);
@@ -1065,7 +1101,7 @@ module picorv32_pcpi_vec #(
 							mem_wordsize <= 2;
 						end
 						(instr_vadd || instr_vmul): begin
-							$display("vec_reg1;%d, vec_reg2:%d, vec_vd:%d, time %d", decoded_vs1, decoded_vs2, decoded_vd, $time);
+							$display("Instr vadd/vmulvec_reg1;%d, vec_reg2:%d, vec_vd:%d, time %d", decoded_vs1, decoded_vs2, decoded_vd, $time);
 							cpu_state <= cpu_state_exec;
 							if(instr_vadd)
 								micro_exec_instr <= p_instr_vadd__vv;
@@ -1088,7 +1124,7 @@ module picorv32_pcpi_vec #(
 							v_membits <= vcsr_vl * ((v_enc_width==3'b000)? 8:(v_enc_width==3'b101)?16:(v_enc_width==3'b110)?32:SEW); 
 						end
 						(instr_vaddvarp || instr_vmulvarp): begin
-							$display("vec_reg1;%d, vec_reg2:%d, vec_vd:%d, time %d", decoded_vs1, decoded_vs2, decoded_vd, $time);
+							$display("Instr_vaddvap/vmulvap vec_reg1;%d, vec_reg2:%d, vec_vd:%d, time %d", decoded_vs1, decoded_vs2, decoded_vd, $time);
 							cpu_state <= cpu_state_exec;
 							if(instr_vaddvarp)
 								micro_exec_instr <= p_instr_vaddvarp;
@@ -1119,10 +1155,8 @@ module picorv32_pcpi_vec #(
 							vecregs_waddr <= decoded_vd;
 							vecregs_raddr1 <= decoded_vs1;
 							vecregs_raddr2 <= decoded_vs2;
-							// vecregs_raddr3 <= decoded_vd; //For dot product
 							vecregs_rstrb1 <= 16'b1;  //To read the first word
 							arth_data_ready <= 0;
-							arth_data_ready2 <= 0;
 							cnt <= 0;
 							elem_n <= 0;
 							ind1 <= 0;
@@ -1131,34 +1165,42 @@ module picorv32_pcpi_vec #(
 							temp_var3 <= 0;
 							temp_count <= 0;
 							temp_count2 <= 0;
+                            temp_count3 <= 0;
 							condition_bit <= 0;
+                            unpack_index <= 0;
+                            unpack_index2 <= 0;
 							//No of words to read from vec reg 
 							no_words <= ((vcsr_vl*SEW)>>5); 
-							read_count <= 0;							
+							read_count <= 0;		
+                            read_count2 <= 0;					
 							v_membits <= vcsr_vl * ((v_enc_width==3'b000)? 8:(v_enc_width==3'b101)?16:(v_enc_width==3'b110)?32:SEW); 
 						end
 						(instr_vdotvarp): begin
+							$display("Instr_vdotvap vec_reg1;%d, vec_reg2:%d, vec_vd:%d, time %d", decoded_vs1, decoded_vs2, decoded_vd, $time);
 							cpu_state <= cpu_state_exec;
 							micro_exec_instr <= p_instr_vdotvarp;
 							vecregs_waddr <= decoded_vd;
 							vecregs_raddr1 <= decoded_vs1;
 							vecregs_raddr2 <= decoded_vs2;
-							// vecregs_raddr3 <= decoded_vd; //For dot product
 							vecregs_rstrb1 <= 16'b1;  //To read the first word
 							arth_data_ready <= 0;
-							arth_data_ready2 <= 0;
 							cnt <= 0;
 							elem_n <= 0;
 							ind1 <= 0;
 							elem_n <= 0;
 							temp_var <= 0;
+                            temp_var3 <= 0;
 							temp_count <= 0;
 							temp_count2 <= 0;
+                            temp_count3 <= 0;
 							condition_bit <= 0;
+                            unpack_index <= 0;
+                            unpack_index2 <= 0;
 							//No of words to read from vec reg 
-							no_words <= ((vcsr_vl*SEW)>>5); 
-							read_count <= 0;							
-							v_membits <= vcsr_vl * ((v_enc_width==3'b000)? 8:(v_enc_width==3'b101)?16:(v_enc_width==3'b110)?32:SEW); 
+							no_words <= ((vcsr_vl*vap)>>5); 
+							read_count <= 0;
+                            read_count2 <= 0;							
+							v_membits <= vcsr_vl * ((v_enc_width==3'b000)? 8:(v_enc_width==3'b101)?16:(v_enc_width==3'b110)?32:vap); 
 						end
 					endcase
 				end 
@@ -1166,7 +1208,7 @@ module picorv32_pcpi_vec #(
 				cpu_state_ldmem: begin
                     //Calculate for the first time and make valid as 1 
                     if(temp_var == 0) begin
-						// $display("Inside cnt=0 condition, mem_read_no:%d, no_words:%d, new_no_words:%d, time: %d",final_addr - init_addr + 1, no_words, new_no_words, $time);
+						$display("Inside cnt=0 condition, mem_read_no:%d, no_words:%d, new_no_words:%d, time: %d",final_addr - init_addr + 1, no_words, new_no_words, $time);
 						bits_remaining <= v_membits[4:0]; //remainder after dividing mem_bits with 32
 						mem_read_no <= final_addr - init_addr + 1; //No of mem_reads required
 						if(v_membits[4:0] > 0)
@@ -1181,7 +1223,7 @@ module picorv32_pcpi_vec #(
 					if(mem_read_no*32 <= flat_reg_len) begin
 						//New line added
 						ind1 <= (reg_op1[1:0] << 3);
-						// $display("mem_valid:%d, mem_str_ready2:%d, time:%d",mem_valid, mem_str_ready2, $time);
+						$display("mem_valid:%d, mem_str_ready2:%d, time:%d",mem_valid, mem_str_ready2, $time);
 						if(mem_read_no >= 1) begin
 							if(mem_ready == 1) begin //This is how memory works
 							// $display("Inside mem-ready, time:%d", $time);
@@ -1189,7 +1231,7 @@ module picorv32_pcpi_vec #(
 							end
 							if((mem_str_ready2 == 1)) begin 
 								ld_data[cnt +: 32] <= mem_rdata_word;  //Selects 32 bits starting from cnt
-								// $display("Inside if mem_addr:%d, mem_rdata: %x, mem_read_no: %d, time:%d",reg_op1>>2, mem_rdata_word, mem_read_no, $time);
+								$display("Inside if mem_addr:%d, mem_rdata: %x, mem_read_no: %d, time:%d",reg_op1>>2, mem_rdata_word, mem_read_no, $time);
 								mem_read_no <= mem_read_no - 1;
 								cnt <= cnt + 32;
 								//If we are loading the last word, then go to ldmem2 stage to load the data into vector reg
@@ -1279,7 +1321,7 @@ module picorv32_pcpi_vec #(
 				cpu_state_stmem: begin
                     //Calculate for the first time and make valid as 1 
                     if(temp_var == 0) begin
-						// $display("Inside cnt=0 condition, mem_read_no:%d, no_words:%d, new_no_words:%d, time: %d",final_addr - init_addr + 1, no_words, new_no_words, $time);
+						$display("Inside cnt=0 condition, mem_read_no:%d, no_words:%d, new_no_words:%d, time: %d",final_addr - init_addr + 1, no_words, new_no_words, $time);
 						bits_remaining <= v_membits[4:0]; //Remainder after dividing mem_bits with 32
 						// mem_wordsize <= 2;
 						condition_bit <= 1;
@@ -1348,12 +1390,12 @@ module picorv32_pcpi_vec #(
 					if(mem_write_no <= new_mem_write_no) begin
 						// $display("Inside if st_mem2 mem_str_ready, mem_write_no:%d, new_mem_write_no:%d time:%d",mem_write_no, new_mem_write_no, $time);
 						if(mem_str_ready == 1) begin
-							if(mem_write_no >= 1) begin
+							if(mem_write_no > 1) begin
 								set_mem_do_wdata = 1;
 								reg_op1 <= reg_op1 + 4;
 								mem_write_no <= mem_write_no - 1;
 							end
-							else if(mem_write_no == 0) begin
+							else if(mem_write_no == 1) begin
 								// $display("pcpi_ready condition: %d", $time);
 								mem_wordsize <= 0;
 								mem_valid <= 0;
@@ -1396,80 +1438,62 @@ module picorv32_pcpi_vec #(
 						temp_var <= 1; //So that it enters this block only once
                     end
 					else begin
-						if(!is_port3_instr) begin
-							if((read_count < no_words) && (unpack_index <= 512)) begin
-								if(arth_data_ready == 1) begin 
-									$display("Inside if arth_data_ready,temp_count2:%b, unpacked data A: %x, unpacked data B: %x, time:%d",temp_count2, opA[127:0], opB[127:0], $time);
-									read_count <= read_count + 1;
-									temp_count2 <= temp_count2 + 1;
-									condition_bit <= 1;
-									arth_data_ready <= 0;
-									if((read_count == no_words-1) || (unpack_index == 512)) begin
-										unpack_data <= 0;
-										alu_enb <= 1;
-									end
+                        if((read_count < no_words) && (unpack_index <= 512)) begin
+                            if(arth_data_ready == 1) begin 
+                                $display("Inside if arth_data_ready,temp_count2:%b, unpacked data A: %x, unpacked data B: %x, time:%d",temp_count2, opA[127:0], opB[127:0], $time);
+                                read_count <= read_count + 1;
+                                temp_count2 <= temp_count2 + 1;
+                                condition_bit <= 1;
+                                arth_data_ready <= 0;
+                                if( ((read_count == no_words-1) || (unpack_index == 512)) && !is_port3_instr) begin
+                                    unpack_data <= 0;
+                                    alu_enb <= 1;
+                                end
+                                else if(((read_count == no_words-1) || (unpack_index == 512)) && is_port3_instr) begin
+                                    vecregs_raddr1 <= decoded_vd;
+                                    vecregs_rstrb1 <= 1;
+                                    port3_data <= 1;
+                                    condition_bit <= 0;
+                                end 
+                            end
+                        end
+                        if((read_count == no_words) && is_port3_instr) begin
+                            if((read_count2 < no_words) && (unpack_index2 <= 512)) begin
+                                //To generate 1 clk delay so that the opC data will be available
+                                if(!temp_var3) begin
+                                    condition_bit <= 1;
+                                    temp_var3 <= 1;
+                                end
+                                if(arth_data_ready == 1) begin 
+                                    $display("Inside if arth_data_ready,read_count2: %d, temp_count3:%b, unpacked data C: %x, time:%d", read_count2, temp_count3, opC[127:0], $time);
+                                    read_count2 <= read_count2 + 1;
+                                    temp_count3 <= temp_count3 + 1;
+                                    condition_bit <= 1;
+                                    arth_data_ready <= 0;
+                                    if( ((read_count2 == no_words-1) || (unpack_index2 == 512))) begin
+                                        unpack_data <= 0;
+                                        alu_enb <= 1;
+                                    end
+                                end
+                            end
+                        end
+                        if((read_count == no_words) && ((!is_port3_instr) || ((read_count2 == no_words) && is_port3_instr))) begin
+                            if(alu_done) begin
+                                if(vap == 2) begin
+									$display("\nopA:%b, \nopB:%b, \nopC:%b", opA[95:0], opB[95:0], opC[95:0]);
+									$display("out:%b, time:%d\n", alu_out[95:0], $time);
 								end
-							end
-							if(read_count == no_words) begin
-								if(alu_done) begin
-									$display("\nopA:%x, \nopB:%x", opA[511:0], opB[511:0]);
+								else begin
+									$display("\nopA:%x, \nopB:%x, \nopC:%x", opA[511:0], opB[511:0], opC[511:0]);
 									$display("out:%x, time:%d\n", alu_out[511:0], $time);
-									unpack_data <= 2;
-									ind1 <= 0;
-									alu_enb <= 0;
-									cpu_state <= cpu_state_exec2;
 								end
-							end
-						end
-						else begin
-							if((read_count < no_words) && (unpack_index <= 512)) begin
-								// $display("Inside arth_ready, time:%d", $time);
-								if(arth_data_ready && !arth_data_ready2) begin 
-									if(temp_var3) begin
-										$display("Inside arth_ready, time:%d", $time);
-										temp_var3 <= 0;
-										port3_data <= 1;
-										condition_bit <= 1;
-									end
-									else
-										temp_var3 <= 1;
-									vecregs_raddr1 <= decoded_vd;
-								end
-								if(arth_data_ready && arth_data_ready2) begin
-									$display("Inside if arth_data_ready,temp_count2:%b, unpacked data A: %x, unpacked data B: %x, unpacked data c: %x, time:%d",temp_var3, opA[95:0], opB[95:0], opC[95:0], $time);
-									if(!temp_var3) begin
-										$display("Inside temp_var, time:%d", $time);
-										temp_var3 <= 0;
-										condition_bit <= 1;
-										port3_data <= 0;
-										arth_data_ready <= 0;
-										arth_data_ready2 <= 0;
-									end
-									else begin
-										$display("Inside else temp_var, time:%d", $time);
-										temp_var3 <= 0;
-										read_count <= read_count + 1;
-										temp_count2 <= temp_count2 + 1;
-									end
-									vecregs_raddr1 <= decoded_vs1;
-									// condition_bit <= 1;
-									if((read_count == no_words-1) || (unpack_index == 512)) begin
-										unpack_data <= 0;
-										alu_enb <= 1;
-									end
-								end
-							end
-							if(read_count == no_words) begin
-								if(alu_done) begin
-									$display("\nopA:%x, \nopB:%x", opA[511:0], opB[511:0]);
-									$display("out:%x, time:%d\n", alu_out[511:0], $time);
-									unpack_data <= 2;
-									ind1 <= 0;
-									alu_enb <= 0;
-									cpu_state <= cpu_state_exec2;
-								end
-							end
-						end
+                                port3_data <= 0;
+                                unpack_data <= 2;
+                                ind1 <= 0;
+                                alu_enb <= 0;
+                                cpu_state <= cpu_state_exec2;
+                            end
+                        end
 					end
 				end
 				cpu_state_exec2: begin

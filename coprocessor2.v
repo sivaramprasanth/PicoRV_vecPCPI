@@ -1,4 +1,3 @@
-
 /***************************************************************
  * picorv32_pcpi_vec: A PCPI core that implements the vector instructions
  ***************************************************************/
@@ -133,7 +132,7 @@ module picorv32_pcpi_vec #(
 							mem_rdata_word[26] <= ld_data[(ind1+reg_op2*26*8) +: 1];
 							mem_rdata_word[27] <= ld_data[ind1+reg_op2*27*8 +: 1];
 							mem_rdata_word[28] <= ld_data[(ind1+reg_op2*28*8) +: 1];
-							mem_rdata_word[39] <= ld_data[(ind1+reg_op2*29*8) +: 1];
+							mem_rdata_word[29] <= ld_data[(ind1+reg_op2*29*8) +: 1];
 							mem_rdata_word[30] <= ld_data[(ind1+reg_op2*30*8) +: 1];
 							mem_rdata_word[31] <= ld_data[(ind1+reg_op2*31*8) +: 1];
 							mem_str_ready <= 1; 
@@ -215,8 +214,8 @@ module picorv32_pcpi_vec #(
 						mem_str_ready <= 0;
 						if(instr_vstore || instr_vstore_str) begin
 							vecregs_rstrb1 <= 1 << (temp_count2+1);
+							// $display("vecreg_data: %x, cnt:%d, time:%d", vecregs_rdata1, cnt, $time);
 							if(SEW == 10'b0000001000) begin
-								$display("vecreg_data: %x, cnt:%d, time:%d", vecregs_rdata1, cnt, $time);
 								st_data[cnt +: 8] <= vecregs_rdata1[7:0];
 								st_data[(cnt+reg_op2*8) +: 8] <= vecregs_rdata1[15:8];
 								st_data[(cnt+reg_op2*2*8) +: 8] <= vecregs_rdata1[23:16];
@@ -247,9 +246,10 @@ module picorv32_pcpi_vec #(
 							condition_bit <= 0;
 						end
 						else if(instr_vseuvarp || instr_vsesvarp) begin
+							vecregs_rstrb1 <= 1 << (temp_count2+1);
 							//SEW is 1
 							if(vap == 10'b0000000001) begin
-								$display("vecreg_data: %x, cnt:%d, time:%d", vecregs_rdata1, cnt, $time);
+								// $display("vecreg_data: %x, cnt:%d, time:%d", vecregs_rdata1, cnt, $time);
 								st_data[cnt +: 1] <= vecregs_rdata1[0];
 								st_data[(cnt+reg_op2*8) +: 1] <= vecregs_rdata1[1];
 								st_data[(cnt+reg_op2*2*8) +: 1] <= vecregs_rdata1[2];
@@ -318,7 +318,7 @@ module picorv32_pcpi_vec #(
 								mem_str_ready <= 1; 
 							end
 							if(vap == 10'b0000000010) begin
-								$display("vecreg_data: %x, cnt:%d, time:%d", vecregs_rdata1, cnt, $time);
+								// $display("vecreg_data: %x, cnt:%d, time:%d", vecregs_rdata1, cnt, $time);
 								st_data[cnt +: 2] <= vecregs_rdata1[1:0];
 								st_data[(cnt+reg_op2*8) +: 2] <= vecregs_rdata1[3:2];
 								st_data[(cnt+reg_op2*2*8) +: 2] <= vecregs_rdata1[5:4];
@@ -355,7 +355,7 @@ module picorv32_pcpi_vec #(
 								mem_str_ready <= 1; 
 							end
 							if(vap == 10'b0000000100) begin
-								$display("vap condition, vecreg_data: %x, cnt:%d, time:%d", vecregs_rdata1, cnt, $time);
+								// $display("vap condition, vecreg_data: %x, cnt:%d, time:%d", vecregs_rdata1, cnt, $time);
 								st_data[cnt +: 4] <= vecregs_rdata1[3:0];
 								st_data[(cnt+reg_op2*8) +: 4] <= vecregs_rdata1[7:4];
 								st_data[(cnt+reg_op2*2*8) +: 4] <= vecregs_rdata1[11:8];
@@ -376,7 +376,7 @@ module picorv32_pcpi_vec #(
 								mem_str_ready <= 1; 
 							end
 							else if(vap == 10'b0000001000) begin
-								$display("vecreg_data: %x, cnt:%d, time:%d", vecregs_rdata1, cnt, $time);
+								// $display("vecreg_data: %x, cnt:%d, time:%d", vecregs_rdata1, cnt, $time);
 								st_data[cnt +: 8] <= vecregs_rdata1[7:0];
 								st_data[(cnt+reg_op2*8) +: 8] <= vecregs_rdata1[15:8];
 								st_data[(cnt+reg_op2*2*8) +: 8] <= vecregs_rdata1[23:16];
@@ -412,7 +412,7 @@ module picorv32_pcpi_vec #(
 	//Variables used by Vadd and Vdot
 	reg [1:0] unpack_data; //States to unpack the data for alu
 	reg [9:0] unpack_index;
-	reg arth_data_ready, arth_data_ready2; //Used to synchronize the data forwarding to ALU
+	reg arth_data_ready; //Used to synchronize the data forwarding to ALU
 	reg [alu_reg_len-1:0] opA, opB, opC; //Using these registers to unpack the data before sending it to the ALUs
 	wire [alu_reg_len-1:0] alu_out;
 	reg [31:0] alu_wdata;
@@ -425,31 +425,18 @@ module picorv32_pcpi_vec #(
 				1: begin
 					if(condition_bit == 1) begin
 						arth_data_ready <= 0;
-						arth_data_ready2 <= 0;
 						if(instr_vadd || instr_vmul || instr_vdot) begin
-							// vecregs_rstrb1 <= 1 << (temp_count2+1);
-							$display("vecreg_data: %x, port3:%d, time:%d", vecregs_rdata1, port3_data, $time);
+							vecregs_rstrb1 <= 1 << (temp_count2+1);
+							// $display("vecreg_data: %x, cnt:%d, time:%d", vecregs_rdata1, cnt, $time);
+							opA[unpack_index +: 32]  <= vecregs_rdata1[31:0];
+							opB[unpack_index +: 32]  <= vecregs_rdata2[31:0];
+                            if(instr_vdot)
+                               opC[unpack_index +: 32]  <= vecregs_rdata3[31:0]; 
+							unpack_index <= unpack_index+32;
 							arth_data_ready <= 1; 
 							condition_bit <= 0;
-							if(!instr_vdot) begin
-								condition_bit <= 0;
-								unpack_index <= unpack_index+32;
-							end
-							if(!port3_data) begin
-								opA[unpack_index +: 32]  <= vecregs_rdata1[31:0];
-								opB[unpack_index +: 32]  <= vecregs_rdata2[31:0];
-							end
-							else if(port3_data) begin
-								temp_var3 <= 1;
-								opC[unpack_index +: 32]  <= vecregs_rdata1[31:0];
-								vecregs_rstrb1 <= 1 << (temp_count2+1);
-								condition_bit <= 0;
-								unpack_index <= unpack_index+32;
-								arth_data_ready2 <= 1; 
-								arth_data_ready <= 1; 
-							end
 						end
-						else if(instr_vaddvarp || instr_vsubvarp || instr_vmulvarp) begin
+						else if(instr_vaddvarp || instr_vsubvarp || instr_vmulvarp || instr_vdotvarp) begin
 							vecregs_rstrb1 <= 1 << (temp_count2+1);
 							if(vap == 10'b0000000001) begin
 								// $display("vecreg_data: %x, cnt:%d, time:%d", vecregs_rdata1, cnt, $time);
@@ -475,14 +462,20 @@ module picorv32_pcpi_vec #(
 							end
 							if(vap == 10'b0000000010) begin
 								// $display("vecreg_data1: %x, vecreg_data2:%x, index:%d, time:%d", vecregs_rdata1, vecregs_rdata2, unpack_index, $time);
-								opA[unpack_index +: 32]     <= {6'b0,vecregs_rdata1[7:6],6'b0,vecregs_rdata1[5:4],6'b0,vecregs_rdata1[3:2],6'b0,vecregs_rdata1[1:0]};
-								opA[unpack_index+32 +: 32]  <= {6'b0,vecregs_rdata1[15:14],6'b0,vecregs_rdata1[13:12],6'b0,vecregs_rdata1[11:10],6'b0,vecregs_rdata1[9:8]};
-								opA[unpack_index+64 +: 32]  <= {6'b0,vecregs_rdata1[23:22],6'b0,vecregs_rdata1[21:20],6'b0,vecregs_rdata1[19:18],6'b0,vecregs_rdata1[17:16]};
-								opA[unpack_index+96 +: 32]  <= {6'b0,vecregs_rdata1[31:30],6'b0,vecregs_rdata1[29:28],6'b0,vecregs_rdata1[27:26],6'b0,vecregs_rdata1[25:24]};
+								opA[unpack_index +: 32]     <= {{6{vecregs_rdata1[7]}},vecregs_rdata1[7:6],{6{vecregs_rdata1[5]}},vecregs_rdata1[5:4],{6{vecregs_rdata1[3]}},vecregs_rdata1[3:2],{6{vecregs_rdata1[1]}},vecregs_rdata1[1:0]};
+								opA[unpack_index+32 +: 32]  <= {{6{vecregs_rdata1[15]}},vecregs_rdata1[15:14],{6{vecregs_rdata1[13]}},vecregs_rdata1[13:12],{6{vecregs_rdata1[11]}},vecregs_rdata1[11:10],{6{vecregs_rdata1[9]}},vecregs_rdata1[9:8]};
+								opA[unpack_index+64 +: 32]  <= {{6{vecregs_rdata1[23]}},vecregs_rdata1[23:22],{6{vecregs_rdata1[21]}},vecregs_rdata1[21:20],{6{vecregs_rdata1[19]}},vecregs_rdata1[19:18],{6{vecregs_rdata1[17]}},vecregs_rdata1[17:16]};
+								opA[unpack_index+96 +: 32]  <= {{6{vecregs_rdata1[31]}},vecregs_rdata1[31:30],{6{vecregs_rdata1[29]}},vecregs_rdata1[29:28],{6{vecregs_rdata1[27]}},vecregs_rdata1[27:26],{6{vecregs_rdata1[25]}},vecregs_rdata1[25:24]};
 								opB[unpack_index +: 32]     <= {vecregs_rdata2[7:6],6'b0,vecregs_rdata2[5:4],6'b0,vecregs_rdata2[3:2],6'b0,vecregs_rdata2[1:0],6'b0};
 								opB[unpack_index+32 +: 32]  <= {vecregs_rdata2[15:14],6'b0,vecregs_rdata2[13:12],6'b0,vecregs_rdata2[11:10],6'b0,vecregs_rdata2[9:8],6'b0};
 								opB[unpack_index+64 +: 32]  <= {vecregs_rdata2[23:22],6'b0,vecregs_rdata2[21:20],6'b0,vecregs_rdata2[19:18],6'b0,vecregs_rdata2[17:16],6'b0};
 								opB[unpack_index+96 +: 32]  <= {vecregs_rdata2[31:30],6'b0,vecregs_rdata2[29:28],6'b0,vecregs_rdata2[27:26],6'b0,vecregs_rdata2[25:24],6'b0};
+                                if(instr_vdotvarp) begin
+                                    opC[unpack_index +: 32]     <= {{6{vecregs_rdata3[7]}},vecregs_rdata3[7:6],{6{vecregs_rdata3[5]}},vecregs_rdata3[5:4],{6{vecregs_rdata3[3]}},vecregs_rdata3[3:2],{6{vecregs_rdata3[1]}},vecregs_rdata3[1:0]};
+                                    opC[unpack_index+32 +: 32]  <= {{6{vecregs_rdata3[15]}},vecregs_rdata3[15:14],{6{vecregs_rdata3[13]}},vecregs_rdata3[13:12],{6{vecregs_rdata3[11]}},vecregs_rdata3[11:10],{6{vecregs_rdata3[9]}},vecregs_rdata3[9:8]};
+                                    opC[unpack_index+64 +: 32]  <= {{6{vecregs_rdata3[23]}},vecregs_rdata3[23:22],{6{vecregs_rdata3[21]}},vecregs_rdata3[21:20],{6{vecregs_rdata3[19]}},vecregs_rdata3[19:18],{6{vecregs_rdata3[17]}},vecregs_rdata3[17:16]};
+                                    opC[unpack_index+96 +: 32]  <= {{6{vecregs_rdata3[31]}},vecregs_rdata3[31:30],{6{vecregs_rdata3[29]}},vecregs_rdata3[29:28],{6{vecregs_rdata3[27]}},vecregs_rdata3[27:26],{6{vecregs_rdata3[25]}},vecregs_rdata3[25:24]};
+                                end
 								unpack_index <= unpack_index+128;
 								arth_data_ready <= 1; 
 							end
@@ -493,6 +486,10 @@ module picorv32_pcpi_vec #(
 								opA[unpack_index+32 +: 32]  <= {{4{vecregs_rdata1[31]}},vecregs_rdata1[31:28],{4{vecregs_rdata1[27]}},vecregs_rdata1[27:24],{4{vecregs_rdata1[23]}},vecregs_rdata1[23:20],{4{vecregs_rdata1[19]}},vecregs_rdata1[19:16]};
 								opB[unpack_index +: 32]     <= {vecregs_rdata2[15:12],4'b0,vecregs_rdata2[11:8],4'b0,vecregs_rdata2[7:4],4'b0,vecregs_rdata2[3:0],4'b0};
 								opB[unpack_index+32 +: 32]  <= {vecregs_rdata2[31:28],4'b0,vecregs_rdata2[27:24],4'b0,vecregs_rdata2[23:20],4'b0,vecregs_rdata2[19:16],4'b0};
+                                if(instr_vdotvarp) begin
+                                    opC[unpack_index +: 32]     <= {{4{vecregs_rdata3[15]}},vecregs_rdata3[15:12],{4{vecregs_rdata3[11]}},vecregs_rdata3[11:8],{4{vecregs_rdata3[7]}},vecregs_rdata3[7:4],{4{vecregs_rdata3[3]}},vecregs_rdata3[3:0]};
+								    opC[unpack_index+32 +: 32]  <= {{4{vecregs_rdata3[31]}},vecregs_rdata3[31:28],{4{vecregs_rdata3[27]}},vecregs_rdata3[27:24],{4{vecregs_rdata3[23]}},vecregs_rdata3[23:20],{4{vecregs_rdata3[19]}},vecregs_rdata3[19:16]};
+                                end
 								unpack_index <= unpack_index+64;
 								arth_data_ready <= 1; 
 							end
@@ -500,6 +497,8 @@ module picorv32_pcpi_vec #(
 								// $display("vecreg_data: %x, cnt:%d, time:%d", vecregs_rdata1, cnt, $time);
 								opA[unpack_index +: 32]  <= vecregs_rdata1[31:0];
 								opB[unpack_index +: 32]  <= vecregs_rdata2[31:0];
+								if(instr_vdotvarp)
+									opC[unpack_index +: 32]  <= vecregs_rdata3[31:0];
 								unpack_index <= unpack_index+32;
 								arth_data_ready <= 1; 
 							end
@@ -509,12 +508,12 @@ module picorv32_pcpi_vec #(
 				end
 				2: begin
 					arth_data_ready <= 0;
-					if(instr_vadd || instr_vmul) begin
-						alu_wdata[31:0]   <= alu_out[31:0];
+					if(instr_vadd || instr_vmul || instr_vdot) begin
+						alu_wdata[31:0] <= alu_out[ind1 +: 32];
 						arth_data_ready <= 1; 
 						ind1 <= ind1 + 4*8;
 					end
-					if(instr_vaddvarp || instr_vmulvarp || instr_vdotvarp || instr_vsubvarp) begin
+					else if(instr_vaddvarp || instr_vmulvarp || instr_vdotvarp || instr_vsubvarp) begin
 						if(vap == 10'b0000000001) begin
 							//The first addr will be ind1, next will be ind1+regop2*1*8, next reg_op2*2*8 etc
 							alu_wdata[0]   <= alu_out[ind1 +: 1];
@@ -531,45 +530,45 @@ module picorv32_pcpi_vec #(
 							alu_wdata[11]  <= alu_out[ind1+11*8 +: 1];
 							alu_wdata[12]  <= alu_out[(ind1+12*8) +: 1];
 							alu_wdata[13]  <= alu_out[(ind1+13*8) +: 1];
-							mem_rdata_word[14]  <= alu_out[(ind1+14*8) +: 1];
-							mem_rdata_word[15]  <= alu_out[(ind1+15*8) +: 1];
-							mem_rdata_word[16]  <= alu_out[(ind1+16*8) +: 1];
-							mem_rdata_word[17]  <= alu_out[(ind1+17*8) +: 1];
-							mem_rdata_word[18]  <= alu_out[(ind1+18*8) +: 1];
-							mem_rdata_word[19]  <= alu_out[ind1+19*8 +: 1];
-							mem_rdata_word[20]  <= alu_out[(ind1+20*8) +: 1];
-							mem_rdata_word[21]  <= alu_out[(ind1+21*8) +: 1];
-							mem_rdata_word[22]  <= alu_out[(ind1+22*8) +: 1];
-							mem_rdata_word[23]  <= alu_out[(ind1+23*8) +: 1];
-							mem_rdata_word[24]  <= alu_out[ind1+24*8 +: 1];
-							mem_rdata_word[25]  <= alu_out[(ind1+25*8) +: 1];
-							mem_rdata_word[26]  <= alu_out[(ind1+26*8) +: 1];
-							mem_rdata_word[27]  <= alu_out[ind1+27*8 +: 1];
-							mem_rdata_word[28]  <= alu_out[(ind1+28*8) +: 1];
-							mem_rdata_word[39]  <= alu_out[(ind1+29*8) +: 1];
-							mem_rdata_word[30]  <= alu_out[(ind1+30*8) +: 1];
-							mem_rdata_word[31]  <= alu_out[(ind1+31*8) +: 1];
+							alu_wdata[14]  <= alu_out[(ind1+14*8) +: 1];
+							alu_wdata[15]  <= alu_out[(ind1+15*8) +: 1];
+							alu_wdata[16]  <= alu_out[(ind1+16*8) +: 1];
+							alu_wdata[17]  <= alu_out[(ind1+17*8) +: 1];
+							alu_wdata[18]  <= alu_out[(ind1+18*8) +: 1];
+							alu_wdata[19]  <= alu_out[ind1+19*8 +: 1];
+							alu_wdata[20]  <= alu_out[(ind1+20*8) +: 1];
+							alu_wdata[21]  <= alu_out[(ind1+21*8) +: 1];
+							alu_wdata[22]  <= alu_out[(ind1+22*8) +: 1];
+							alu_wdata[23]  <= alu_out[(ind1+23*8) +: 1];
+							alu_wdata[24]  <= alu_out[ind1+24*8 +: 1];
+							alu_wdata[25]  <= alu_out[(ind1+25*8) +: 1];
+							alu_wdata[26]  <= alu_out[(ind1+26*8) +: 1];
+							alu_wdata[27]  <= alu_out[ind1+27*8 +: 1];
+							alu_wdata[28]  <= alu_out[(ind1+28*8) +: 1];
+							alu_wdata[29]  <= alu_out[(ind1+29*8) +: 1];
+							alu_wdata[30]  <= alu_out[(ind1+30*8) +: 1];
+							alu_wdata[31]  <= alu_out[(ind1+31*8) +: 1];
 							arth_data_ready <= 1; 
 							ind1 <= ind1 + 32*8;
 						end
 						else if(vap == 10'b0000000010) begin
 							//The first addr will be ind1, next will be ind1+regop2*1*8, next reg_op2*2*8 etc
-							mem_rdata_word[1:0]   <= alu_out[ind1 +: 2];
-							mem_rdata_word[3:2]   <= alu_out[(ind1+8) +: 2];
-							mem_rdata_word[5:4]   <= alu_out[(ind1+16) +: 2];
-							mem_rdata_word[7:6]   <= alu_out[ind1+24 +: 2];
-							mem_rdata_word[9:8]   <= alu_out[(ind1+32) +: 2];
-							mem_rdata_word[11:10] <= alu_out[(ind1+40) +: 2];
-							mem_rdata_word[13:12] <= alu_out[(ind1+48) +: 2];
-							mem_rdata_word[15:14] <= alu_out[(ind1+56) +: 2];
-							mem_rdata_word[17:16] <= alu_out[ind1+8*8 +: 2];
-							mem_rdata_word[19:18] <= alu_out[(ind1+9*8) +: 2];
-							mem_rdata_word[21:20] <= alu_out[(ind1+10*8) +: 2];
-							mem_rdata_word[23:22] <= alu_out[ind1+11*8 +: 2];
-							mem_rdata_word[25:24] <= alu_out[(ind1+12*8) +: 2];
-							mem_rdata_word[27:26] <= alu_out[(ind1+13*8) +: 2];
-							mem_rdata_word[29:28] <= alu_out[(ind1+14*8) +: 2];
-							mem_rdata_word[31:30] <= alu_out[(ind1+15*8) +: 2];
+							alu_wdata[1:0]   <= alu_out[ind1 +: 2];
+							alu_wdata[3:2]   <= alu_out[(ind1+8) +: 2];
+							alu_wdata[5:4]   <= alu_out[(ind1+16) +: 2];
+							alu_wdata[7:6]   <= alu_out[ind1+24 +: 2];
+							alu_wdata[9:8]   <= alu_out[(ind1+32) +: 2];
+							alu_wdata[11:10] <= alu_out[(ind1+40) +: 2];
+							alu_wdata[13:12] <= alu_out[(ind1+48) +: 2];
+							alu_wdata[15:14] <= alu_out[(ind1+56) +: 2];
+							alu_wdata[17:16] <= alu_out[ind1+8*8 +: 2];
+							alu_wdata[19:18] <= alu_out[(ind1+9*8) +: 2];
+							alu_wdata[21:20] <= alu_out[(ind1+10*8) +: 2];
+							alu_wdata[23:22] <= alu_out[ind1+11*8 +: 2];
+							alu_wdata[25:24] <= alu_out[(ind1+12*8) +: 2];
+							alu_wdata[27:26] <= alu_out[(ind1+13*8) +: 2];
+							alu_wdata[29:28] <= alu_out[(ind1+14*8) +: 2];
+							alu_wdata[31:30] <= alu_out[(ind1+15*8) +: 2];
 							arth_data_ready <= 1; 
 							ind1 <= ind1 + 16*8;
 						end
@@ -589,7 +588,7 @@ module picorv32_pcpi_vec #(
 						end
 						if(vap == 10'b0000001000) begin
 							// $display("Inside mem_wsize1,ind1:%d, mem_rdata_word:%x, time:%d",ind1, mem_rdata_word, $time);
-							alu_wdata[31:0]   <= alu_out[31:0];
+							alu_wdata[31:0] <= alu_out[ind1 +: 32];
 							arth_data_ready <= 1; 
 							ind1 <= ind1 + 4*8;
 						end
@@ -601,8 +600,8 @@ module picorv32_pcpi_vec #(
 	//Instruction decoder
 	reg instr_vsetvli, instr_vsetvl, instr_vsetprecision; //Vec instrn to set the csr reg values
 	reg instr_vload,instr_vload_str,instr_vstore, instr_vstore_str;   //Vec load and store instr
-	reg instr_vdot,instr_vadd, instr_vmul, port3_data, temp_var3; //For dot product and addition
-	wire is_vec_instr, is_vap_instr, is_port3_instr; ////To check whether the forwarded instruction to coprocessor is vector instruction or not
+	reg instr_vdot,instr_vadd, instr_vmul; //For dot product and addition
+	wire is_vec_instr, is_vap_instr; //To check whether the forwarded instruction to coprocessor is vector instruction or not
 
 	//Instructions for variable bit precision {Currently, doesn't support subtraction}
 	reg instr_vleuvarp, instr_vlesvarp, instr_vseuvarp, instr_vsesvarp, instr_vaddvarp, instr_vsubvarp, instr_vmulvarp, instr_vdotvarp;
@@ -610,7 +609,6 @@ module picorv32_pcpi_vec #(
 	assign is_vec_instr = |{instr_vsetvli,instr_vsetvl,instr_vsetprecision,instr_vload,instr_vload_str, instr_vleuvarp, instr_vlesvarp, instr_vstore, instr_vstore_str, instr_vseuvarp,
 							instr_vsesvarp, instr_vdot, instr_vadd, instr_vmul, instr_vaddvarp, instr_vsubvarp, instr_vmulvarp, instr_vdotvarp};
 	assign is_vap_instr = |{instr_vleuvarp, instr_vlesvarp, instr_vsesvarp, instr_vseuvarp, instr_vsetprecision, instr_vaddvarp, instr_vsubvarp, instr_vmulvarp, instr_vdotvarp}; //To heck whether the instruction is variable bit one
-	assign is_port3_instr = |{instr_vdot, instr_vdotvarp};
 	reg [4:0] decoded_vs1, decoded_vs2, decoded_vd; //For vect instrns
 	reg [10:0] decoded_vimm; //For vect instrns
 
@@ -643,8 +641,6 @@ module picorv32_pcpi_vec #(
 			unpack_index <= 0;
 			unpack_data <= 0; //Used in case statement
 			arth_data_ready <= 0;
-			arth_data_ready2 <= 0;
-			port3_data <= 0;
 		end
 		else begin
 			// $display("Inside decode stage, instrn: %x, time: %d", pcpi_insn, $time);
@@ -747,11 +743,13 @@ module picorv32_pcpi_vec #(
 	reg [15:0] vecregs_wstrb;
 	reg [4:0] vecregs_raddr1;
 	reg [4:0] vecregs_raddr2;
-	reg port3_en;  //Used to read the third register
+	reg [4:0] vecregs_raddr3; //For vdot instruction
+	reg port3_en;  //Used for the third register
 	reg [15:0] vecregs_rstrb1;
 	reg [31:0] vecregs_wdata;
 	wire [31:0] vecregs_rdata1;
 	wire [31:0] vecregs_rdata2;
+	wire [31:0] vecregs_rdata3; //For vdot instruction
 		
 	vector_regs vecreg_inst (
 		.clk(clk),
@@ -760,12 +758,14 @@ module picorv32_pcpi_vec #(
 		.vec_wstrb(vecregs_wstrb),
 		.raddr1(vecregs_raddr1),
 		.raddr2(vecregs_raddr2),
+		.raddr3(vecregs_raddr3),
 		.port3_en(port3_en),
 		.vec_rstrb1(vecregs_rstrb1),
 		.wdata(vecregs_wdata),
 		.rdata1(vecregs_rdata1),
-		.rdata2(vecregs_rdata2)
-	);	
+		.rdata2(vecregs_rdata2),
+		.rdata3(vecregs_rdata3)
+		);	
 
 	//Main state machine
 	localparam cpu_state_fetch   = 8'b10000000;
@@ -817,7 +817,6 @@ module picorv32_pcpi_vec #(
 			vecregs_rstrb1 <= 16'b0;
 			vecregs_wstrb_temp <= 16'b0;
 			elem_n <= 0;
-			port3_en <= 0;
 		end
 		else begin
 			pcpi_wait <= 1;
@@ -826,7 +825,7 @@ module picorv32_pcpi_vec #(
 			latched_vstore <= 0; 
 			case(cpu_state)
 				cpu_state_fetch: begin
-					$display("Inside fetch state, mem_do_wdata:%b, time: %d", mem_do_wdata, $time);
+					$display("Inside fetch state, instruction:%x, time: %d", pcpi_insn, $time);
 					mem_valid <= 0; //Not initializing the memory in fetch stage
 					reg_op1 <= pcpi_cpurs1;
 					reg_op2 <= pcpi_cpurs2;
@@ -1003,11 +1002,11 @@ module picorv32_pcpi_vec #(
 							// ind1 <= 0; 
 							// ind2 <= 0;
 							//This is used when no of mem_reads crosses flat_reg_len bits
-							new_no_words <= ((flat_reg_len >> 8)*SEW) / reg_op2;  //Derives from { flat_reg_len*SEW / (32*8*stride) }
+							new_no_words <= ((flat_reg_len >> 8)*SEW) / reg_op2;  //Derives from { flat_reg_len*vap / (32*8*stride) }
 							read_count <= 0;
 							st_data <= 0;
 							st_strb <= 0;
-							// mem_wordsize <= 2;
+							mem_wordsize <= 2;
 						end
 						(instr_vseuvarp): begin
 							$display("Inside vap_unit_store condition, time:%d", $time);
@@ -1058,7 +1057,7 @@ module picorv32_pcpi_vec #(
 							// ind1 <= 0;
 							// ind2 <= 0; //Used to index the mem strb
 							//This is used when no of mem_reads crosses flat_reg_len bits
-							new_no_words <= ((flat_reg_len >> 8)*SEW) / reg_op2;  //Derives from { flat_reg_len*SEW / (32*8*stride) }
+							new_no_words <= ((flat_reg_len >> 8)*vap) / reg_op2;  //Derives from { flat_reg_len*vap / (32*8*stride) }
 							read_count <= 0;
 							st_data <= 0;
 							st_strb <= 0;
@@ -1075,7 +1074,8 @@ module picorv32_pcpi_vec #(
 							vecregs_raddr1 <= decoded_vs1;
 							vecregs_raddr2 <= decoded_vs2;
 							vecregs_rstrb1 <= 16'b1;  //To read the first word
-							arth_data_ready <= 0; //Initial value of arth_data_ready
+							arth_data_ready <= 0; //Initial value of mem_str_ready
+							// unpack_data <= 1;
 							cnt <= 0;
 							ind1 <= 0;
 							elem_n <= 0;
@@ -1119,16 +1119,14 @@ module picorv32_pcpi_vec #(
 							vecregs_waddr <= decoded_vd;
 							vecregs_raddr1 <= decoded_vs1;
 							vecregs_raddr2 <= decoded_vs2;
-							// vecregs_raddr3 <= decoded_vd; //For dot product
+							vecregs_raddr3 <= decoded_vd; //For dot product
+                            port3_en <= 1;
 							vecregs_rstrb1 <= 16'b1;  //To read the first word
 							arth_data_ready <= 0;
-							arth_data_ready2 <= 0;
 							cnt <= 0;
 							elem_n <= 0;
 							ind1 <= 0;
-							elem_n <= 0;
-							temp_var <= 0;
-							temp_var3 <= 0;
+                            temp_var <= 0;
 							temp_count <= 0;
 							temp_count2 <= 0;
 							condition_bit <= 0;
@@ -1138,27 +1136,27 @@ module picorv32_pcpi_vec #(
 							v_membits <= vcsr_vl * ((v_enc_width==3'b000)? 8:(v_enc_width==3'b101)?16:(v_enc_width==3'b110)?32:SEW); 
 						end
 						(instr_vdotvarp): begin
+                            $display("Instr_vdotvarp vec_reg1;%d, vec_reg2:%d, vec_vd:%d, time %d", decoded_vs1, decoded_vs2, decoded_vd, $time);
 							cpu_state <= cpu_state_exec;
 							micro_exec_instr <= p_instr_vdotvarp;
 							vecregs_waddr <= decoded_vd;
 							vecregs_raddr1 <= decoded_vs1;
 							vecregs_raddr2 <= decoded_vs2;
-							// vecregs_raddr3 <= decoded_vd; //For dot product
+							vecregs_raddr3 <= decoded_vd; //For dot product
+                            port3_en <= 1;
 							vecregs_rstrb1 <= 16'b1;  //To read the first word
 							arth_data_ready <= 0;
-							arth_data_ready2 <= 0;
 							cnt <= 0;
 							elem_n <= 0;
 							ind1 <= 0;
-							elem_n <= 0;
 							temp_var <= 0;
 							temp_count <= 0;
 							temp_count2 <= 0;
 							condition_bit <= 0;
 							//No of words to read from vec reg 
-							no_words <= ((vcsr_vl*SEW)>>5); 
+							no_words <= ((vcsr_vl*vap)>>5); 
 							read_count <= 0;							
-							v_membits <= vcsr_vl * ((v_enc_width==3'b000)? 8:(v_enc_width==3'b101)?16:(v_enc_width==3'b110)?32:SEW); 
+							v_membits <= vcsr_vl * ((v_enc_width==3'b000)? 8:(v_enc_width==3'b101)?16:(v_enc_width==3'b110)?32:vap); 
 						end
 					endcase
 				end 
@@ -1179,6 +1177,13 @@ module picorv32_pcpi_vec #(
 						temp_var <= 1; //So that it enters this block only once
                     end
 					if(mem_read_no*32 <= flat_reg_len) begin
+						if(mem_read_no == 0) begin
+							$display("Vl is 0");
+							mem_str_ready <= 0; //Will be made 1 again in mem_wordsize FSM
+							cpu_state <= cpu_state_fetch;
+							pcpi_wait <= 0;
+							pcpi_ready <= 1;
+						end
 						//New line added
 						ind1 <= (reg_op1[1:0] << 3);
 						// $display("mem_valid:%d, mem_str_ready2:%d, time:%d",mem_valid, mem_str_ready2, $time);
@@ -1279,9 +1284,8 @@ module picorv32_pcpi_vec #(
 				cpu_state_stmem: begin
                     //Calculate for the first time and make valid as 1 
                     if(temp_var == 0) begin
-						// $display("Inside cnt=0 condition, mem_read_no:%d, no_words:%d, new_no_words:%d, time: %d",final_addr - init_addr + 1, no_words, new_no_words, $time);
+						$display("Inside cnt=0 condition, mem_read_no:%d, no_words:%d, str_bits:%d, time: %d",final_addr - init_addr + 1, no_words, str_bits, $time);
 						bits_remaining <= v_membits[4:0]; //Remainder after dividing mem_bits with 32
-						// mem_wordsize <= 2;
 						condition_bit <= 1;
 						if(v_membits[4:0] > 0)
 							no_words <= no_words+1;
@@ -1301,9 +1305,18 @@ module picorv32_pcpi_vec #(
                     end
                     // $display("final_addr: %d, init_addr: %d, No of mem_reads: %d, time:%d",final_addr, init_addr, mem_read_no, $time);
 					if(str_bits < flat_reg_len) begin
+						if(no_words == 0) begin
+							$display("Vl is 0");
+							mem_str_ready <= 0; //Will be made 1 again in mem_wordsize FSM
+							mem_wordsize <= 0;
+							mem_valid <= 0;
+							pcpi_wait <= 0;
+							pcpi_ready <= 1;
+							cpu_state <= cpu_state_fetch;
+						end
 						if(read_count < no_words) begin
 							if((mem_str_ready == 1)) begin 
-								$display("Inside if mem_str_ready, mem_write_no:%d time:%d",mem_write_no, $time);
+								// $display("Inside if mem_str_ready, mem_write_no:%d time:%d",mem_write_no, $time);
 								read_count <= read_count + 1;
 								temp_count2 <= temp_count2 + 1;
 								condition_bit <= 1;
@@ -1323,7 +1336,7 @@ module picorv32_pcpi_vec #(
 					else begin
 						if(read_count < new_no_words) begin
 							if((mem_str_ready == 1)) begin 
-								$display("Inside else mem_str_ready, new_mem_write_no:%d time:%d", new_mem_write_no, $time);
+								// $display("Inside else mem_str_ready, new_mem_write_no:%d time:%d", new_mem_write_no, $time);
 								read_count <= read_count + 1;
 								temp_count2 <= temp_count2 + 1;
 								condition_bit <= 1;
@@ -1364,7 +1377,7 @@ module picorv32_pcpi_vec #(
 						end
 					end
 					else begin
-						// $display("Inside else st_mem2 mem_str_ready, mem_write_no:%d, new_mem_write_no:%d time:%d",mem_write_no, new_mem_write_no, $time);
+						$display("Inside else st_mem2 mem_str_ready, mem_write_no:%d, new_mem_write_no:%d time:%d",mem_write_no, new_mem_write_no, $time);
 						if(mem_str_ready == 1) begin
 							if(read_count < new_mem_write_no) begin
 								read_count <= read_count + 1;
@@ -1396,78 +1409,41 @@ module picorv32_pcpi_vec #(
 						temp_var <= 1; //So that it enters this block only once
                     end
 					else begin
-						if(!is_port3_instr) begin
-							if((read_count < no_words) && (unpack_index <= 512)) begin
-								if(arth_data_ready == 1) begin 
-									$display("Inside if arth_data_ready,temp_count2:%b, unpacked data A: %x, unpacked data B: %x, time:%d",temp_count2, opA[127:0], opB[127:0], $time);
-									read_count <= read_count + 1;
-									temp_count2 <= temp_count2 + 1;
-									condition_bit <= 1;
-									arth_data_ready <= 0;
-									if((read_count == no_words-1) || (unpack_index == 512)) begin
-										unpack_data <= 0;
-										alu_enb <= 1;
-									end
-								end
-							end
-							if(read_count == no_words) begin
-								if(alu_done) begin
-									$display("\nopA:%x, \nopB:%x", opA[511:0], opB[511:0]);
-									$display("out:%x, time:%d\n", alu_out[511:0], $time);
-									unpack_data <= 2;
-									ind1 <= 0;
-									alu_enb <= 0;
-									cpu_state <= cpu_state_exec2;
+						if(no_words == 0) begin
+							$display("Vl is 0");
+							unpack_data <= 0;
+							pcpi_wait <= 0;
+							pcpi_ready <= 1;
+							cpu_state <= cpu_state_fetch;
+						end
+						if((read_count < no_words) && (unpack_index <= 512)) begin
+							if((arth_data_ready == 1)) begin 
+								// $display("Inside if arth_data_ready,temp_count2:%b, unpacked data A: %x, unpacked data B: %x, unpacked data C: %x, time:%d",temp_count2, opA[127:0], opB[127:0], opC[127:0], $time);
+								read_count <= read_count + 1;
+								temp_count2 <= temp_count2 + 1;
+								condition_bit <= 1;
+								arth_data_ready <= 0;
+								if((read_count == no_words-1) || (unpack_index == 512)) begin
+									unpack_data <= 0;
+									alu_enb <= 1;
 								end
 							end
 						end
-						else begin
-							if((read_count < no_words) && (unpack_index <= 512)) begin
-								// $display("Inside arth_ready, time:%d", $time);
-								if(arth_data_ready && !arth_data_ready2) begin 
-									if(temp_var3) begin
-										$display("Inside arth_ready, time:%d", $time);
-										temp_var3 <= 0;
-										port3_data <= 1;
-										condition_bit <= 1;
-									end
-									else
-										temp_var3 <= 1;
-									vecregs_raddr1 <= decoded_vd;
+						if(read_count == no_words) begin
+							// $display("done1:%b, done5:%b, done16:%b, time:%d", done1, done5, done16, $time);
+							if(alu_done) begin
+								if(vap == 2) begin
+									$display("\nopA:%b, \nopB:%b, \nopC:%b", opA[95:0], opB[95:0], opC[95:0]);
+									$display("out:%b, time:%d\n", alu_out[95:0], $time);
 								end
-								if(arth_data_ready && arth_data_ready2) begin
-									$display("Inside if arth_data_ready,temp_count2:%b, unpacked data A: %x, unpacked data B: %x, unpacked data c: %x, time:%d",temp_var3, opA[95:0], opB[95:0], opC[95:0], $time);
-									if(!temp_var3) begin
-										$display("Inside temp_var, time:%d", $time);
-										temp_var3 <= 0;
-										condition_bit <= 1;
-										port3_data <= 0;
-										arth_data_ready <= 0;
-										arth_data_ready2 <= 0;
-									end
-									else begin
-										$display("Inside else temp_var, time:%d", $time);
-										temp_var3 <= 0;
-										read_count <= read_count + 1;
-										temp_count2 <= temp_count2 + 1;
-									end
-									vecregs_raddr1 <= decoded_vs1;
-									// condition_bit <= 1;
-									if((read_count == no_words-1) || (unpack_index == 512)) begin
-										unpack_data <= 0;
-										alu_enb <= 1;
-									end
-								end
-							end
-							if(read_count == no_words) begin
-								if(alu_done) begin
-									$display("\nopA:%x, \nopB:%x", opA[511:0], opB[511:0]);
+								else begin
+									$display("\nopA:%x, \nopB:%x, \nopC:%x", opA[511:0], opB[511:0], opC[511:0]);
 									$display("out:%x, time:%d\n", alu_out[511:0], $time);
-									unpack_data <= 2;
-									ind1 <= 0;
-									alu_enb <= 0;
-									cpu_state <= cpu_state_exec2;
 								end
+								unpack_data <= 2;
+								ind1 <= 0;
+								alu_enb <= 0;
+								cpu_state <= cpu_state_exec2;
 							end
 						end
 					end
@@ -1523,18 +1499,3 @@ module picorv32_pcpi_vec #(
 
 
 endmodule
-
-
-// //If the number of ALU's are not sufficient
-	// if(unpack_index == 512) begin
-	// 	if(alu_done) begin
-	// 		$display("\nopA:%x, \nopB:%x", opA[511:0], opB[511:0]);
-	// 		$display("out:%x, time:%d\n", alu_out[511:0], $time);
-	// 		unpack_data <= 2;
-	// 		ind1 <= 0;
-	// 		read_count <= 0;
-	// 		alu_enb <= 0;
-	// 		unpack_index <= 0;
-	// 		cpu_state <= cpu_state_exec2;
-	// 	end
-	// end

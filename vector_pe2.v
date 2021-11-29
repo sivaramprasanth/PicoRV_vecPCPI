@@ -82,16 +82,17 @@ always @(posedge clk) begin
         copB = 0;
         done = 0;
     end
-    else begin
+    else if(start) begin
         case(states)
             startstate:begin
                 if(start)begin
-                    done = 0;
-                    accumulator = 0;
-                    if(|{instruction == instr_vmul__vv,instruction == instr_vmulvarp,instruction == instr_vdot__vv}) begin
+                    done <= 0;
+                    accumulator <= 0;
+                    if(|{instruction == instr_vmul__vv,instruction == instr_vmulvarp,instruction == instr_vdot__vv, instruction == instr_vdotvarp}) begin
+                        // $display("Entered start state, time:%d", $time);
                         states = multstate;
                         //No of clock cycles needed to get the result using bit serial multiplier
-                        cycles = (instruction==instr_vmulvarp )? ({4'h0,vap}):SEW[7:0]; 
+                        cycles = (instruction==instr_vmulvarp || instruction == instr_vdotvarp)? ({4'h0,vap}):SEW[7:0]; 
 
                         first_cmpte = 1;
                         // to retain local copy and not interfere with other changer is depacking module
@@ -105,7 +106,7 @@ always @(posedge clk) begin
                     done = 0;
             end
             multstate: begin
-                if(SEW==32 && !(instruction == instr_vmulvarp)) begin
+                if(SEW==32 && !((instruction == instr_vmulvarp) || (instruction == instr_vdotvarp))) begin
                     if(first_cmpte)begin
                         accumulator = (opB[31])?-opA:0;
                         copB= opB << 1;
@@ -113,12 +114,13 @@ always @(posedge clk) begin
                         first_cmpte = 0;
                         end
                     else begin
+                        // $display("Entered else state, accumulator:%b, time:%d", accumulator, $time);
                         accumulator = ((accumulator<<1) + ((copB[31])?opA:0));
                         copB       = copB <<1;
                         cycles = cycles -1;
                     end
                 end
-                else if(SEW==16 && !(instruction == instr_vmulvarp)) begin
+                else if(SEW==16 && !((instruction == instr_vmulvarp) || (instruction == instr_vdotvarp))) begin
                     if(first_cmpte)begin
                         accumulator[31:16] = (opB[31])?-opA[31:16]:0;
                         accumulator[15: 0] = (opB[15])?-opA[15: 0]:0;
@@ -195,9 +197,11 @@ always @(posedge clk) begin
                     end
                     peout = accumulator;
                 end
-                else if((|{instruction==instr_vsubvarp,instruction==instr_vaddvarp}) && SEW == 16) begin
-                    accumulator[31:16] = opA[31:16] + ((instruction == instr_vaddvarp)? ((opB[31:16]>>(15-vap)) | ((opB[31])?((16'hFFFF)<<(vap+1)):16'h0000)) : ( (instruction == instr_vsubvarp)?-((opB[31:16]>>(15-vap)) | ((opB[31])?((16'hFFFF)<<(vap+1)):16'h0000)) :0) );
-                    accumulator[15:0] = opA[15:0] + ((instruction == instr_vaddvarp)? ((opB[15:0]>>(15-vap)) | ((opB[15])?((16'hFFFF)<<(vap+1)):16'h0000)) : ( (instruction == instr_vsubvarp)?-((opB[15:0]>>(15-vap)) | ((opB[15])?((16'hFFFF)<<(vap+1)):16'h0000)) :0) );
+                else if((|{instruction==instr_vsubvarp,instruction==instr_vaddvarp})) begin
+                    accumulator[31:24] = opA[31:24] + ((instruction == instr_vaddvarp)? ((opB[31:24]>>(8-vap)) | ((opB[31])?((8'hFF)<<(vap)):8'h00)) : ((instruction == instr_vsubvarp)?-((opB[31:24]>>(8-vap)) | ((opB[31])?((8'hFF)<<(vap)):8'h00)) :0) );
+                    accumulator[23:16] = opA[23:16] + ((instruction == instr_vaddvarp)? ((opB[23:16]>>(8-vap)) | ((opB[23])?((8'hFF)<<(vap)):8'h00)) : ( (instruction == instr_vsubvarp)?-((opB[23:16]>>(8-vap)) | ((opB[23])?((8'hFF)<<(vap)):8'h00)) :0) );
+                    accumulator[15:8] = opA[15:8] + ((instruction == instr_vaddvarp)? ((opB[15:8]>>(8-vap)) | ((opB[15])?((8'hFF)<<(vap)):8'h00)) : ( (instruction == instr_vsubvarp)?-((opB[15:8]>>(8-vap)) | ((opB[15])?((8'hFF)<<(vap)):8'h00)) :0) );
+                    accumulator[7:0] = opA[7:0] + ((instruction == instr_vaddvarp)? ((opB[7:0]>>(8-vap)) | ((opB[7])?((8'hFF)<<(vap)):8'h00)) : ( (instruction == instr_vsubvarp)?-((opB[7:0]>>(8-vap)) | ((opB[7])?((8'hFF)<<(vap)):8'h00)) :0) );
                     peout = accumulator;
                 end
                 else if(instruction==instr_vmulvarp)begin 
@@ -211,11 +215,22 @@ always @(posedge clk) begin
                     if(is_opA_neg[3])   peout[31:24] = -accumulator[31:24];
                     else                peout[31:24] = accumulator[31:24];
                 end
+                else if(instruction==instr_vdotvarp)begin 
+                    // $display("Inside final condition, is_opA_neg:%b, time:%d", is_opA_neg, $time);
+                    if(is_opA_neg[0])   peout[7:0] = -accumulator[7:0] + opC[7:0];
+                    else                peout[7:0] = accumulator[7:0] + opC[7:0];
+                    if(is_opA_neg[1])   peout[15:8] = -accumulator[15:8] + opC[15:8];
+                    else                peout[15:8] = accumulator[15:8] + opC[15:8];
+                    if(is_opA_neg[2])   peout[23:16] = -accumulator[23:16] + opC[23:16];
+                    else                peout[23:16] = accumulator[23:16] + opC[23:16];
+                    if(is_opA_neg[3])   peout[31:24] = -accumulator[31:24] + opC[31:24];
+                    else                peout[31:24] = accumulator[31:24] + opC[31:24];
+                end
                 else if(instruction==instr_vmul__vv) begin
                     peout = accumulator;
                 end
                 temp = 0;
-                done =1;
+                done = 1;
                 states = startstate;
             end
 

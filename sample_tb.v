@@ -4,7 +4,7 @@
 // distribute this software, either in source code form or as a compiled
 // binary, for any purpose, commercial or non-commercial, and by any
 // means.
-//SEW of 16 bits
+//SEW of 8
 
 `timescale 1 ns / 1 ps
 
@@ -25,7 +25,7 @@ module testbench;
 		end
 		repeat (1) @(posedge clk);
 		resetn <= 1;
-		repeat (500) @(posedge clk);
+		repeat (300) @(posedge clk);
 		$finish;
 	end
 	integer ix;
@@ -123,19 +123,18 @@ module testbench;
 			memory[i] = 32'h 00000093; //NOP
 		
 		//Vl is the number of elements to modify every time
-		memory[0] = 32'h 01000113; //---> to set vl(no of elements) as 16 (Addi x2,x0,4) 
+		memory[0] = 32'h 00c00113; //---> to set vl as 16 (Addi x2,x0,16) 
 		// Ox 00017257
-		memory[1] = 32'b 00000000010000010111001001010111; //Vsetvli x4,x2, LMUL=1 E16 --->  0 00000000100 00010 111 00100 1010111 ---> 00817257 (sew - 32)
+		memory[1] = 32'b 00000000000000010111001001010111; //Vsetvli x4,x2, LMUL=1 E8 --->  0 00000000000 00010 111 00100 1010111 ---> 00817257 (sew - 8)
 		memory[2] = 32'h 19000093; //addi x1,x0,400
-        memory[3] = 32'h 00200393; //addi x7,x0,4  --> Loading the stride
+        memory[3] = 32'h 00200393; //addi x7,x0,1  --> byte offset (stride)
 		//31 29 28 26 25 24    20 19  15 14 12 11    7 6     0
 		// nf | mop | vm |  rs2 |  rs1 | width |  vd  |0000111| VL* strided
         memory[4] = 32'b 00001010011100001111000010000111; //  000 010 1 00111 00001 111 00001 0000111 vlse.v v1, (x1), x7
 		// memory[5] = 32'h 1a400093; //addi x1,x0,420
 		memory[5] = 32'h 19000093; //addi x1,x0,400
 		memory[6] = 32'b 00001010011100001111000100000111; //  000 010 1 00111 00001 111 00010 0000111 vlse.v v2, (x1), x7
-		// memory[7] = 32'h 1E400093; //addi x1,x0,484   ---> Loading 00000093 repetetively into v8
-		memory[7] = 32'h 1b800093; //addi x1,x0,440
+		memory[7] = 32'h 25800093; //addi x1,x0,600   ---> Loading 00000093 repetetively into v8
 		memory[8] = 32'b 00001010011100001111010000000111; //  000 010 1 00111 00001 111 01000 0000111 vlse.v v8, (x1), x7
 		// memory[9] = 32'b 00000010001000001000010001010111; //  000000 1 00010 00001 000 01000 1010111  vadd.vv v8,v2,v1 --> 0x0a100157
 		// memory[9] = 32'b 10010110001000001000010001010111; //  000000 1 00010 00001 000 01000 1010111  vmul.vv v8,v2,v1 --> 0x09620857
@@ -144,57 +143,25 @@ module testbench;
 		memory[10] = 32'h 32000093; //addi x1,x0,800
 		memory[11] = 32'b 00001010011100001111010000100111; //  000 010 1 00111 00001 111 01000 0100111 vsse.v v8, (x1), x7
 
-
-		// memory[100] = 32'h 04030201;
-		// memory[101] = 32'h 08070605;
-        // memory[102] = 32'h 0c0b0a09;
-		// memory[103] = 32'h 000f0e0d;
-        // memory[104] = 32'h 14131211;
-		// memory[105] = 32'h 18171615;
-        // memory[106] = 32'h 1c1b1a19;
-		// memory[107] = 32'h 101f1e1d;
-        // memory[108] = 32'h 24232221; 
-		// memory[109] = 32'h 28272625;
-
-		//Data is 1 1 1 1 1 0 1 0 1 0 0 1 1 1 0 0
-		//Data is 2 1 2 1 1 3 1 0 2 1 2 1 1 3 1 0
-		// memory[100] = 32'b 00000000000000010000000000000001;    //1 1
-		// memory[101] = 32'b 00000000000000010000000000000001;    //1 1
-        // memory[102] = 32'b 00000000000000010000000000000000;    //1 0
-		// memory[103] = 32'b 00000000000000010000000000000000;    //1 0
-        // memory[104] = 32'b 00000000000000010000000000000000;	//1 0
-		// memory[105] = 32'b 00000000000000000000000000000001;	//0 1
-        // memory[106] = 32'b 00000000000000010000000000000001;    //1 1
-		// memory[107] = 32'b 00000000000000000000000000000000;    //0 0
-		
-		memory[100] = 32'b 00000000000000100000000000000001;    //2 1
-		memory[101] = 32'b 00000000000000100000000000000001;    //2 1
-        memory[102] = 32'b 00000000000000010000000000000011;    //1 3
-		memory[103] = 32'b 00000000000000010000000000000000;    //1 0
-        memory[104] = 32'b 00000000000000100000000000000001;	//2 1
-		memory[105] = 32'b 00000000000000100000000000000001;	//2 1
-        memory[106] = 32'b 00000000000000010000000000000011;    //1 3
-		memory[107] = 32'b 00000000000000010000000000000000;    //1 0
-
-		memory[108] = 32'b 00000001000000010000000000000000;	//1 1 0 0
-        memory[109] = 32'b 00000001000000000000000000000001;	//1 0 0 1 
-		memory[110] = 32'b 00000000000000010000000000000001;    //1 1
-		memory[111] = 32'b 00000000000000010000000000000001;    //1 1
-        memory[112] = 32'b 00000000000000010000000000000000;    //1 0
-		memory[113] = 32'b 00000000000000010000000000000000;    //1 0
-		memory[114] = 32'b 00000000000000010000000000000000;	//1 0
-		memory[115] = 32'b 00000000000000000000000000000001;	//0 1
-        memory[116] = 32'b 00000000000000010000000000000001;    //1 1
-		memory[117] = 32'b 00000000000000000000000000000000;    //0 0
-
-		// memory[110] = 32'h 0000000a;
-        // memory[111] = 32'h 00000014;
-		// memory[112] = 32'h 0000001e;
-		// memory[113] = 32'h 00000028;
-        // memory[114] = 32'h 00000032;
-		// memory[115] = 32'h 0000003c;
-		// memory[116] = 32'h 00000046;
-        // memory[117] = 32'h 00000050;
+		memory[100] = 32'h 04030201;
+		memory[101] = 32'h 08070605;
+        memory[102] = 32'h 0c0b0a09;
+		memory[103] = 32'h 000f0e0d;
+        memory[104] = 32'h 14131211;
+		memory[105] = 32'h 181716f9;
+        memory[106] = 32'h 1c1b1a19;
+		memory[107] = 32'h 101f1e1d;
+        memory[108] = 32'h 24232221; 
+		memory[109] = 32'h 28272625;
+	
+		memory[110] = 32'h 0000000a;
+        memory[111] = 32'h 00000014;
+		memory[112] = 32'h 0000001e;
+		memory[113] = 32'h 00000028;
+        memory[114] = 32'h 00000032;
+		memory[115] = 32'h 0000003c;
+		memory[116] = 32'h 00000046;
+        memory[117] = 32'h 00000050;
 		memory[118] = 32'h 0000005a;
 		memory[119] = 32'h 1000000a;
         memory[120] = 32'h 11000014;
@@ -240,9 +207,9 @@ module testbench;
 			if (vec_mem_addr < 1024) begin
 				vec_mem_rdata <= memory[vec_mem_addr >> 2];
 				vec_mem_ready <= 1;
-				// if(vec_mem_wstrb == 4'b0)
-					// $display("mem_addr: %d, mem_data: %x,mem_ready:%d, time:%d",vec_mem_addr, vec_mem_rdata,vec_mem_ready, $time);
-				if(vec_mem_wstrb != 4'b0)
+				// $display("mem_addr: %d, mem_data: %x,mem_ready:%d, time:%d",vec_mem_addr, vec_mem_rdata,vec_mem_ready, $time);
+				// $display("Time:%d ,Data read from memory: %x, addr: %d", $time,vec_mem_rdata, vec_mem_addr);
+				if(|(vec_mem_wstrb) == 1)
 					$display("Data written to memory addr: %d is %x, mem_wstrb: %b, time:%d", vec_mem_addr, vec_mem_wdata, vec_mem_wstrb, $time);
 				if (vec_mem_wstrb[0]) memory[vec_mem_addr >> 2][ 7: 0] <= vec_mem_wdata[ 7: 0];
 				if (vec_mem_wstrb[1]) memory[vec_mem_addr >> 2][15: 8] <= vec_mem_wdata[15: 8];
