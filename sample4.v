@@ -247,6 +247,7 @@ always @(posedge clk) begin
                         condition_bit <= 0;
                     end
                     else if(instr_vseuvarp || instr_vsesvarp) begin
+						vecregs_rstrb1 <= 1 << (temp_count2+1);
                         //SEW is 1
                         if(vap == 10'b0000000001) begin
                             $display("vecreg_data: %x, cnt:%d, time:%d", vecregs_rdata1, cnt, $time);
@@ -1090,7 +1091,7 @@ end
 							temp_count2 <= 0;
 							temp_count <= 0;
 							condition_bit <= 0;
-							mem_write_no <= (reg_op2*vcsr_vl) >> 2; //No of mem writes required (vcsr*stride*8/32)
+							mem_write_no <= (str_bits[4:0]==0) ? (str_bits>>5): ((str_bits>>5)+1); //No of mem writes required (vcsr*stride*8/32)
 							// ind1 <= 0;
 							// ind2 <= 0; //Used to index the mem strb
 							//This is used when no of mem_reads crosses flat_reg_len bits
@@ -1208,7 +1209,7 @@ end
 				cpu_state_ldmem: begin
                     //Calculate for the first time and make valid as 1 
                     if(temp_var == 0) begin
-						$display("Inside cnt=0 condition, mem_read_no:%d, no_words:%d, new_no_words:%d, time: %d",final_addr - init_addr + 1, no_words, new_no_words, $time);
+						// $display("Inside cnt=0 condition, em_read_no:%d, no_words:%d, new_no_words:%d, time: %d",final_addr - init_addr + 1, no_words, new_no_words, $time);
 						bits_remaining <= v_membits[4:0]; //remainder after dividing mem_bits with 32
 						mem_read_no <= final_addr - init_addr + 1; //No of mem_reads required
 						if(v_membits[4:0] > 0)
@@ -1223,7 +1224,6 @@ end
 					if(mem_read_no*32 <= flat_reg_len) begin
 						//New line added
 						ind1 <= (reg_op1[1:0] << 3);
-						$display("mem_valid:%d, mem_str_ready2:%d, time:%d",mem_valid, mem_str_ready2, $time);
 						if(mem_read_no >= 1) begin
 							if(mem_ready == 1) begin //This is how memory works
 							// $display("Inside mem-ready, time:%d", $time);
@@ -1231,7 +1231,7 @@ end
 							end
 							if((mem_str_ready2 == 1)) begin 
 								ld_data[cnt +: 32] <= mem_rdata_word;  //Selects 32 bits starting from cnt
-								$display("Inside if mem_addr:%d, mem_rdata: %x, mem_read_no: %d, time:%d",reg_op1>>2, mem_rdata_word, mem_read_no, $time);
+								// $display("Inside if mem_addr:%d, mem_rdata: %x, mem_read_no: %d, time:%d",reg_op1>>2, mem_rdata_word, mem_read_no, $time);
 								mem_read_no <= mem_read_no - 1;
 								cnt <= cnt + 32;
 								//If we are loading the last word, then go to ldmem2 stage to load the data into vector reg
@@ -1321,7 +1321,7 @@ end
 				cpu_state_stmem: begin
                     //Calculate for the first time and make valid as 1 
                     if(temp_var == 0) begin
-						$display("Inside cnt=0 condition, mem_read_no:%d, no_words:%d, new_no_words:%d, time: %d",final_addr - init_addr + 1, no_words, new_no_words, $time);
+						// $display("Inside cnt=0 condition, mem_read_no:%d, no_words:%d, new_no_words:%d, time: %d",final_addr - init_addr + 1, no_words, new_no_words, $time);
 						bits_remaining <= v_membits[4:0]; //Remainder after dividing mem_bits with 32
 						// mem_wordsize <= 2;
 						condition_bit <= 1;
@@ -1345,7 +1345,7 @@ end
 					if(str_bits < flat_reg_len) begin
 						if(read_count < no_words) begin
 							if((mem_str_ready == 1)) begin 
-								$display("Inside if mem_str_ready, mem_write_no:%d time:%d",mem_write_no, $time);
+								// $display("Inside if mem_str_ready, no_words:%d, read_count:%d, time:%d",no_words,read_count, $time);
 								read_count <= read_count + 1;
 								temp_count2 <= temp_count2 + 1;
 								condition_bit <= 1;
@@ -1365,7 +1365,7 @@ end
 					else begin
 						if(read_count < new_no_words) begin
 							if((mem_str_ready == 1)) begin 
-								$display("Inside else mem_str_ready, new_mem_write_no:%d time:%d", new_mem_write_no, $time);
+								// $display("Inside else mem_str_ready, new_mem_write_no:%d, time:%d", new_mem_write_no, $time);
 								read_count <= read_count + 1;
 								temp_count2 <= temp_count2 + 1;
 								condition_bit <= 1;
@@ -1388,7 +1388,7 @@ end
 				end
 				cpu_state_stmem2: begin
 					if(mem_write_no <= new_mem_write_no) begin
-						// $display("Inside if st_mem2 mem_str_ready, mem_write_no:%d, new_mem_write_no:%d time:%d",mem_write_no, new_mem_write_no, $time);
+						// $display("Inside if st_mem2 mem_str_ready, str_bits:%d, mem_write_no:%d, new_mem_write_no:%d, st_data:%x, time:%d",str_bits, mem_write_no, new_mem_write_no, st_data, $time);
 						if(mem_str_ready == 1) begin
 							if(mem_write_no > 1) begin
 								set_mem_do_wdata = 1;

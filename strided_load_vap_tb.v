@@ -125,10 +125,10 @@ module testbench;
 		//Vl is the number of elements to modify every time
         memory[0] = 32'h 00400113; //---> to set vap as 4 (Addi x2,x0,4) 
         memory[1] = 32'h 00100093; //---> to set elem_off as 1 (Addi x1,x0,1)  000000000001 00000 000 00001 0010011
-        // funct  rs2(off)  vap  fun        opcode
+        // funct  rs2(off) vap(reg)  fun        opcode
         //1000000 00001    00010 111 00000 1011011
         memory[2] = 32'b 10000000000100010111000001011011; //Setting the value of vap as 4
-        memory[3] = 32'h 01000113; //Addi x2, x0, 8  (Set Vl as 16)
+        memory[3] = 32'h 00a00113; //Addi x2, x0, 16  (Set Vl as 16)
 		memory[4] = 32'b 00000000000000010111001001010111; //Vsetvli x4,x2, LMUL=1 E4 --->  0 00000000000 00010 111 00100 1010111 ---> 00817257 (sew - 4)
 		memory[5] = 32'h 19000093; //addi x1,x0,400
         memory[6] = 32'h 00100393; //addi x7,x0,1  --> byte offset (stride)

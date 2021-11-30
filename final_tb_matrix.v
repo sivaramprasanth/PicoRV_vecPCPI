@@ -141,15 +141,15 @@ module testbench;
 	memory[6] = 32'b 10000000010100100111000001011011;                                //   vsetprecision x4,x5 (->vap,eloffset) 1000000|00101|00100|111|00000|1011011
 	// Loading data unit stride load for Nbit 
 	memory[7] = 32'b 00000000000000010111000011011011;                                //   vleu_varp v1,(x2),x0 00|00000|00000|00010|111|00001|1011011     
-	memory[8] = 32'h 00328293 ;                                                        // addi x5,x5,0x003		// element offset
+	memory[8] = 32'h 00328293 ;                                                       // addi x5,x5,0x003		// element offset
 	memory[9] = 32'b 10000000010100100111000001011011;                                //   vsetprecision x4,x5 (->vap,eloffset) 1000000|00101|00100|111|00000|1011011
 	
 	memory[10] = 32'b 00000000000000010111000101011011;                                //   vleu_varp v2,(x2),x0 00|00000|00000|00010|111|00010|1011011     
-	memory[11] = 32'h 00328293 ;                                                        // addi x5,x5,0x003		// element offset
+	memory[11] = 32'h 00328293 ;                                                       // addi x5,x5,0x003		// element offset
 	memory[12] = 32'b 10000000010100100111000001011011;                                //   vsetprecision x4,x5 (->vap,eloffset) 1000000|00101|00100|111|00000|1011011
 	
 	memory[13] = 32'b 00000000000000010111000111011011;                                //   vleu_varp v3,(x2),x0 00|00000|00000|00010|111|00011|1011011     
-	memory[14] = 32'h 00328293 ;                                                        // addi x5,x5,0x003		// element offset
+	memory[14] = 32'h 00328293 ;                                                       // addi x5,x5,0x003		// element offset
 	memory[15] = 32'b 10000000010100100111000001011011;                                //   vsetprecision x4,x5 (->vap,eloffset) 1000000|00101|00100|111|00000|1011011
 	//load and multiply 
 

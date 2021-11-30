@@ -214,7 +214,7 @@ module testbench;
 		// 	memory[239+4*ix+3] = 32'h 00000008;
 		// end
 
-		//Vttpe reg is 00000000000, vtype[1:0] -> vlmul[1:0] (sets LMUL value)
+		//Vtype reg is 00000000000, vtype[1:0] -> vlmul[1:0] (sets LMUL value)
 		//							vtype[4:2] -> vsew[2:0] (sets SEW value)
 		//							vtype[6:5] -> vdiv[1:0] (used by EDIV extension)
 		//							vlen gets it's value from 00010 reg i.e it gets 16
