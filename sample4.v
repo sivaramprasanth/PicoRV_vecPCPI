@@ -239,6 +239,7 @@ always @(posedge clk) begin
                         end
                         //SEW is 32
                         else if(SEW == 10'b0000100000) begin
+							// $display("vecreg_data: %x, cnt:%d, st_data:%x, time:%d", vecregs_rdata1, cnt, st_data, $time);
                             st_data[cnt +: 32] <= vecregs_rdata1;
                             st_strb[(cnt >> 3) +: 4] <= 4'b1111;
                             cnt <= cnt + 8*reg_op2;
@@ -428,7 +429,7 @@ end
 						arth_data_ready <= 0;
 						if(instr_vadd || instr_vmul || instr_vdot) begin
 							// vecregs_rstrb1 <= 1 << (temp_count2+1);
-							$display("vecreg_data: %x, port3:%d, time:%d", vecregs_rdata1, port3_data, $time);
+							// $display("vecreg_data: %x, port3:%d, time:%d", vecregs_rdata1, port3_data, $time);
 							if(!port3_data) begin
                             	vecregs_rstrb1 <= 1 << (temp_count2+1);
 								opA[unpack_index +: 32]  <= vecregs_rdata1[31:0];
@@ -445,7 +446,7 @@ end
 						end
 						else if(instr_vaddvarp || instr_vsubvarp || instr_vmulvarp || instr_vdotvarp) begin
 							if(vap == 10'b0000000001) begin
-								// $display("vecreg_data: %x, cnt:%d, time:%d", vecregs_rdata1, cnt, $time);
+								$display("vecreg_data: %x, cnt:%d, time:%d", vecregs_rdata1, cnt, $time);
 								//Converting sew of 1 to 8 bits to operate on them and zero padding on left side (for better multiplication)
 								if(!port3_data) begin
                                     vecregs_rstrb1 <= 1 << (temp_count2+1);
@@ -567,24 +568,24 @@ end
 							alu_wdata[11]  <= alu_out[ind1+11*8 +: 1];
 							alu_wdata[12]  <= alu_out[(ind1+12*8) +: 1];
 							alu_wdata[13]  <= alu_out[(ind1+13*8) +: 1];
-							mem_rdata_word[14]  <= alu_out[(ind1+14*8) +: 1];
-							mem_rdata_word[15]  <= alu_out[(ind1+15*8) +: 1];
-							mem_rdata_word[16]  <= alu_out[(ind1+16*8) +: 1];
-							mem_rdata_word[17]  <= alu_out[(ind1+17*8) +: 1];
-							mem_rdata_word[18]  <= alu_out[(ind1+18*8) +: 1];
-							mem_rdata_word[19]  <= alu_out[ind1+19*8 +: 1];
-							mem_rdata_word[20]  <= alu_out[(ind1+20*8) +: 1];
-							mem_rdata_word[21]  <= alu_out[(ind1+21*8) +: 1];
-							mem_rdata_word[22]  <= alu_out[(ind1+22*8) +: 1];
-							mem_rdata_word[23]  <= alu_out[(ind1+23*8) +: 1];
-							mem_rdata_word[24]  <= alu_out[ind1+24*8 +: 1];
-							mem_rdata_word[25]  <= alu_out[(ind1+25*8) +: 1];
-							mem_rdata_word[26]  <= alu_out[(ind1+26*8) +: 1];
-							mem_rdata_word[27]  <= alu_out[ind1+27*8 +: 1];
-							mem_rdata_word[28]  <= alu_out[(ind1+28*8) +: 1];
-							mem_rdata_word[29]  <= alu_out[(ind1+29*8) +: 1];
-							mem_rdata_word[30]  <= alu_out[(ind1+30*8) +: 1];
-							mem_rdata_word[31]  <= alu_out[(ind1+31*8) +: 1];
+							alu_wdata[14]  <= alu_out[(ind1+14*8) +: 1];
+							alu_wdata[15]  <= alu_out[(ind1+15*8) +: 1];
+							alu_wdata[16]  <= alu_out[(ind1+16*8) +: 1];
+							alu_wdata[17]  <= alu_out[(ind1+17*8) +: 1];
+							alu_wdata[18]  <= alu_out[(ind1+18*8) +: 1];
+							alu_wdata[19]  <= alu_out[ind1+19*8 +: 1];
+							alu_wdata[20]  <= alu_out[(ind1+20*8) +: 1];
+							alu_wdata[21]  <= alu_out[(ind1+21*8) +: 1];
+							alu_wdata[22]  <= alu_out[(ind1+22*8) +: 1];
+							alu_wdata[23]  <= alu_out[(ind1+23*8) +: 1];
+							alu_wdata[24]  <= alu_out[ind1+24*8 +: 1];
+							alu_wdata[25]  <= alu_out[(ind1+25*8) +: 1];
+							alu_wdata[26]  <= alu_out[(ind1+26*8) +: 1];
+							alu_wdata[27]  <= alu_out[ind1+27*8 +: 1];
+							alu_wdata[28]  <= alu_out[(ind1+28*8) +: 1];
+							alu_wdata[29]  <= alu_out[(ind1+29*8) +: 1];
+							alu_wdata[30]  <= alu_out[(ind1+30*8) +: 1];
+							alu_wdata[31]  <= alu_out[(ind1+31*8) +: 1];
 							arth_data_ready <= 1; 
 							ind1 <= ind1 + 32*8;
 						end
@@ -735,8 +736,8 @@ end
 	wire [31:0]VLMAX = (512/SEW)*LMUL; //Represents the max no of elements that can be operated on with a vec instrn
 
 	//Variables used by vload and vstore
-    reg [5:0] mem_read_no; //No of memory reads for load instrn
-	reg [5:0] new_mem_read_no; //Used when no of reads are more
+    reg [6:0] mem_read_no; //No of memory reads for load instrn
+	reg [6:0] new_mem_read_no; //Used when no of reads are more
     reg [9:0] init_addr; //Used for vector ld and st
     reg [9:0] final_addr; //Used for vector ld and st
 	reg [5:0] vecldstrcnt;
@@ -759,7 +760,7 @@ end
     reg [9:0] ind1; //Used for vec load
 	reg [5:0] ind2; //Used to index the strb
     reg [5:0] no_words; //No of words to read
-	reg [5:0] new_no_words;
+	reg [6:0] new_no_words;
 	reg [5:0] read_count, read_count2; //Used in ld_mem state
 	reg [4:0] bits_remaining; //Bits remaining after words are loaded
     reg [5:0] temp_count; //Used for indexing (strb in vector regs)
@@ -920,7 +921,7 @@ end
 							mem_wordsize <= 0;
 						end
 						(instr_vload_str): begin
-							$display("Inside v_load_stride condition, time:%d", $time);
+							$display("Inside v_load_stride condition, new_no_words:%d, time:%d",(((flat_reg_len >> 8)*SEW) / reg_op2), $time);
 							cpu_state <= cpu_state_ldmem;
                             init_addr <= reg_op1 >> 2; //Initial word addrr
                             final_addr <= ((reg_op1 + (vcsr_vl-1)*reg_op2 + sew_bytes) >> 2);  //Calculates the word addr of final byte 
@@ -937,7 +938,7 @@ end
                             temp_count <= 0;
                             ind1 <= (reg_op1[1:0] << 3); //byte addr to bit addr
 							//This is used when no of mem_reads crosses flat_reg_len bits
-							new_no_words <= ((flat_reg_len >> 8)*SEW) / reg_op2;  //Derives from { flat_reg_len*SEW / (32*8*stride) }
+							new_no_words <= (((flat_reg_len >> 8)*SEW) / reg_op2);  //Derives from { flat_reg_len*SEW / (32*8*stride) }
 							read_count <= 0;
 							//Number many bits to read in each cycle
 							// if(SEW == 10'b0000100000)
@@ -979,7 +980,8 @@ end
 							mem_str_state <= 2'b00; //Initial state for strided load
 							//Updating mem_bits depending on vcsr_vl and v_enc_width(i.e instr[14:12])
 							v_membits <= vcsr_vl * ((v_enc_width==3'b000)? 8:(v_enc_width==3'b101)?16:(v_enc_width==3'b110)?32:vap); 
-                            no_words <= ((vcsr_vl*vap)>>5); //No of words to read
+                            no_words <= ((vcsr_vl*vap)>>5); //No of words to readEntered vector instruction condition in 1840, time:                 1280
+
                             cnt <= 0;
 							temp_var <= 0;
                             temp_count <= 0;
@@ -1147,7 +1149,7 @@ end
 							//No of words to read from vec reg 
 							no_words <= ((vcsr_vl*vap)>>5); 
 							read_count <= 0;
-							v_membits <= vcsr_vl * ((v_enc_width==3'b000)? 8:(v_enc_width==3'b101)?16:(v_enc_width==3'b110)?32:vap); 
+							v_membits <= vcsr_vl * ((v_enc_width==3'b000)? vap:0); 
 						end
 						(instr_vdot): begin
 							$display("Instr_vdot vec_reg1;%d, vec_reg2:%d, vec_vd:%d, time %d", decoded_vs1, decoded_vs2, decoded_vd, $time);
@@ -1201,7 +1203,8 @@ end
 							no_words <= ((vcsr_vl*vap)>>5); 
 							read_count <= 0;
                             read_count2 <= 0;							
-							v_membits <= vcsr_vl * ((v_enc_width==3'b000)? 8:(v_enc_width==3'b101)?16:(v_enc_width==3'b110)?32:vap); 
+							// v_membits <= vcsr_vl * ((v_enc_width==3'b000)? 8:(v_enc_width==3'b101)?16:(v_enc_width==3'b110)?32:vap); 
+							v_membits <= vcsr_vl * ((v_enc_width==3'b000)? vap:0);
 						end
 					endcase
 				end 
@@ -1209,7 +1212,7 @@ end
 				cpu_state_ldmem: begin
                     //Calculate for the first time and make valid as 1 
                     if(temp_var == 0) begin
-						// $display("Inside cnt=0 condition, em_read_no:%d, no_words:%d, new_no_words:%d, time: %d",final_addr - init_addr + 1, no_words, new_no_words, $time);
+						$display("Inside cnt=0 condition, mem_read_no:%d, no_words:%d, new_no_words:%d, time: %d",final_addr - init_addr + 1, no_words, new_no_words, $time);
 						bits_remaining <= v_membits[4:0]; //remainder after dividing mem_bits with 32
 						mem_read_no <= final_addr - init_addr + 1; //No of mem_reads required
 						if(v_membits[4:0] > 0)
@@ -1236,7 +1239,7 @@ end
 								cnt <= cnt + 32;
 								//If we are loading the last word, then go to ldmem2 stage to load the data into vector reg
 								if(mem_read_no == 1) begin
-									// $display("Inside mem_str_ready2,no_words:%d, ld_data :%x, time:%d",no_words, ld_data, $time);
+									$display("Inside mem_str_ready2,no_words:%d, ld_data :%x, time:%d",no_words, ld_data, $time);
 									//Irrespective of SEW, the mem_wordsize will be 1 (used in mem FSM)
 									mem_wordsize <= 1;
 									mem_valid <= 0;
@@ -1321,7 +1324,7 @@ end
 				cpu_state_stmem: begin
                     //Calculate for the first time and make valid as 1 
                     if(temp_var == 0) begin
-						// $display("Inside cnt=0 condition, mem_read_no:%d, no_words:%d, new_no_words:%d, time: %d",final_addr - init_addr + 1, no_words, new_no_words, $time);
+						$display("Inside cnt=0 condition, mem_read_no:%d, no_words:%d, new_no_words:%d, time: %d",final_addr - init_addr + 1, no_words, new_no_words, $time);
 						bits_remaining <= v_membits[4:0]; //Remainder after dividing mem_bits with 32
 						// mem_wordsize <= 2;
 						condition_bit <= 1;
@@ -1341,7 +1344,6 @@ end
 						end
 						temp_var <= 1; //So that it enters this block only once
                     end
-                    // $display("final_addr: %d, init_addr: %d, No of mem_reads: %d, time:%d",final_addr, init_addr, mem_read_no, $time);
 					if(str_bits < flat_reg_len) begin
 						if(read_count < no_words) begin
 							if((mem_str_ready == 1)) begin 
@@ -1429,7 +1431,7 @@ end
 				end
 				cpu_state_exec: begin
 					if(temp_var == 0) begin
-						$display("Inside cnt=0 condition, no_words:%d, time: %d",no_words, $time);
+						// $display("Inside cnt=0 condition, no_words:%d, v_membits:%d, time: %d",no_words, v_membits[4:0], $time);
 						unpack_data <= 1;  //We have to read three registers here 
 						bits_remaining <= v_membits[4:0]; //Remainder after dividing mem_bits with 32
 						condition_bit <= 1;   //Used to synchronize the data forwarding
@@ -1440,7 +1442,7 @@ end
 					else begin
                         if((read_count < no_words) && (unpack_index <= 512)) begin
                             if(arth_data_ready == 1) begin 
-                                $display("Inside if arth_data_ready,temp_count2:%b, unpacked data A: %x, unpacked data B: %x, time:%d",temp_count2, opA[127:0], opB[127:0], $time);
+                                // $display("Inside if arth_data_ready,temp_count2:%b, unpacked data A: %x, unpacked data B: %x, time:%d",temp_count2, opA[127:0], opB[127:0], $time);
                                 read_count <= read_count + 1;
                                 temp_count2 <= temp_count2 + 1;
                                 condition_bit <= 1;
@@ -1465,7 +1467,7 @@ end
                                     temp_var3 <= 1;
                                 end
                                 if(arth_data_ready == 1) begin 
-                                    $display("Inside if arth_data_ready,read_count2: %d, temp_count3:%b, unpacked data C: %x, time:%d", read_count2, temp_count3, opC[127:0], $time);
+                                    // $display("Inside if arth_data_ready,read_count2: %d, temp_count3:%b, unpacked data C: %x, time:%d", read_count2, temp_count3, opC[127:0], $time);
                                     read_count2 <= read_count2 + 1;
                                     temp_count3 <= temp_count3 + 1;
                                     condition_bit <= 1;

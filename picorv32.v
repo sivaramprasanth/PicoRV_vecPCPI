@@ -1719,16 +1719,7 @@ module picorv32 #(
 				mem_wordsize <= 0;
 
 				current_pc = reg_next_pc;
-
-				//For vector instructions
-				//Wait for the main processor to execute the current instruction and then
-				//take care of the flag from vector coprocessor
-				//New changes
-				// if(pcpi_vec_ready == 1) begin
-				// 	$display("Inside vector ready condition, 1683");
-				// 	pcpi_vec_valid <= 0;
-				// 	is_vec_used <= 0;
-				// end
+				// $display("Inside the fetch state of main processor, time:%d", $time);
 
 				(* parallel_case *)
 				case (1'b1)

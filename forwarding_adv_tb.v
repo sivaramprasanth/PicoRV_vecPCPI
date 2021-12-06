@@ -4,7 +4,7 @@
 // distribute this software, either in source code form or as a compiled
 // binary, for any purpose, commercial or non-commercial, and by any
 // means.
-//SEW of 8
+//SEW of 32 bits
 
 `timescale 1 ns / 1 ps
 
@@ -25,7 +25,7 @@ module testbench;
 		end
 		repeat (1) @(posedge clk);
 		resetn <= 1;
-		repeat (300) @(posedge clk);
+		repeat (500) @(posedge clk);
 		$finish;
 	end
 	integer ix;
@@ -123,53 +123,83 @@ module testbench;
 			memory[i] = 32'h 00000093; //NOP
 		
 		//Vl is the number of elements to modify every time
-        memory[0] = 32'h 00100113; //---> to set vap as 2 (Addi x2,x0,2) 
-        memory[1] = 32'h 00100093; //---> to set elem_off as 1 (Addi x1,x0,1)  000000000001 00000 000 00001 0010011
-        // funct  rs2(off)  vap  fun        opcode
-        //1000000 00001    00010 111 00000 1011011
-        memory[2] = 32'b 10000000000100010111000001011011; //Setting the value of vap as 2
-        memory[3] = 32'h 01000113; //Addi x2, x0, 16  (Set Vl as 16)
-		memory[4] = 32'b 00000000000000010111001001010111; //Vsetvli x4,x2, LMUL=1 E2 --->  0 00000000000 00010 111 00100 1010111 ---> 00817257 (sew - 2)
-		memory[5] = 32'h 19000093; //addi x1,x0,400
-        memory[6] = 32'h 00100393; //addi x7,x0,1  --> byte offset (stride)
-		//31 30 29 26 25  24 	 20 19  15 14 12 11    7 6     0
-		// 00 | 0000 | vm | 00000 |  rs1 | width |  vd  |1011011| vleu_varp
-		// 00 | 0001 | vm |  rs2  |  rs1 | width |  vd  |1011011| vles_varp
-        memory[7] = 32'b 00000110011100001111000011011011; //  00 0001 1 00111 00001 111 00001 1011011 vles_varp.v v1, (x1), x7
-		memory[8] = 32'h 19000093; //addi x1,x0,400
-		memory[9] = 32'b 00000110011100001111000101011011; //   00 0001 1 00111 00001 111 00010 1011011 vles_varp.v v2, (x1), x7
-		memory[10] = 32'h 1a400093; //addi x1,x0,420
-		memory[11] = 32'b 00000110011100001111010001011011; //  00 0001 1 00111 00001 111 01000 1011011  vles_varp.v v8, (x1), x7
-		// memory[12] = 32'b 11000000001000001000010001011011; //  11 00000 00010 00001 000 01000 1011011  vaddvarp.vv v8,v2,v1 
-		// memory[12] = 32'b 11000100001000001000	010001011011; //  11 00010 00010 00001 000 01000 1011011  vmulvarp.vv v8,v2,v1 
-		memory[12] = 32'b 11000110001000001000010001011011; //  11 00011 00010 00001 000 01000 1011011  vdotvarp.vv v8,v2,v1 
-		memory[13] = 32'h 32000093; //addi x1,x0,800
-		//31 30 29 26 25  24 	  20 19  15 14 12 11    7 6     0
-		// 01 | 0000 | vm | 00000  |  rs1 | width |  vd  |1011011| vseu_varp
-		// 01 | 0001 | vm |  rs2   |  rs1 | width |  vd  |1011011| vses_varp
-		memory[14] = 32'b 01000110011100001111010001011011; //  01 0001 1 00111 00001 111 01000 1011011 vses_varp.v v8, (x1), x7
-		
-		//Data in memory to be loaded
-		memory[100] = 32'b 00000001000000010000000100000001;    //1 1 1 1
-		memory[101] = 32'b 00000001000000000000000100000000;    //1 0 1 0
-        memory[102] = 32'b 00000001000000000000000000000001;    //1 0 0 1
-		memory[103] = 32'b 00000001000000010000000000000000;    //1 1 0 0
-        memory[104] = 32'b 00000000000000000000000100000001;	//0 0 1 1
-		memory[105] = 32'b 00000001000000010000000100000001;	//1 1 1 1
-        memory[106] = 32'b 00000000000000010000000100000000;    //0 1 1 0
-		memory[107] = 32'b 00000000000000010000000100000000;    //0 1 1 0
-		memory[108] = 32'b 00000001000000010000000000000000;	//1 1 0 0
-        memory[109] = 32'b 00000001000000000000000000000001;	//1 0 0 1 
+		memory[0] = 32'h 00800113; //---> to set vl(no of elements) as 8 (Addi x2,x0,8) 
+		// Ox 00017257
+		memory[1] = 32'b 00000000100000010111001001010111; //Vsetvli x4,x2, LMUL=1 E32 --->  0 00000001000 00010 111 00100 1010111 ---> 00817257 (sew - 32)
+		memory[2] = 32'h 19000093; //addi x1,x0,400
+        memory[3] = 32'h 00400393; //addi x7,x0,4  --> Loading the stride
+		memory[4] = 32'b 10010110100100000000010100010011;  //addi x10, x0, 100101101001b
+		memory[5] = 32'b 00000000000000000000010110010011;  //addi x11, x0, 000000000000b
+		memory[6] = 32'b 00000000001100000000011000010011;  //addi x12, x0, 000000000011b
+		memory[7] = 32'b 00111110100000000000011010010011;  //addi x13, x0, 1000d {store address}
+		memory[8] = 32'b 10010110100101010111011110010011;  //andi x15, x10, 100101101001b    --> x15 contains 100101101001
+		memory[9] = 32'b 00000000111101101010000000100011;  //sw x13, 0(x15)
+		memory[10] = 32'b 00000000001101010111011110010011;  //andi x15, x10, 000000000011b    --> x15 contains 000000000001
+		memory[11] = 32'b 00000000111101101010000000100011;  //sw x13, 0(x15)
+		memory[12] = 32'b 10010110100100000000010100010011;  //addi x10, x0, 100101101001b
+		memory[13] = 32'b 00000000000000000000010110010011;  //addi x11, x0, 000000000000b
+		memory[14] = 32'b 00000000001100000000011000010011;  //addi x12, x0, 000000000011b
+		memory[15] = 32'b 00111110100000000000011010010011;  //addi x13, x0, 1000d {store address}
+		memory[16] = 32'b 10010110100101010111011110010011;  //andi x15, x10, 100101101001b    --> x15 contains 100101101001
+		memory[17] = 32'b 00000000111101101010000000100011;  //sw x13, 0(x15)
+		memory[18] = 32'b 00000000001101010111011110010011;  //andi x15, x10, 000000000011b    --> x15 contains 000000000001
+		memory[19] = 32'b 00000000111101101010000000100011;  //sw x13, 0(x15)
+		memory[20] = 32'b 10010110100100000000010100010011;  //addi x10, x0, 100101101001b
+		memory[21] = 32'b 00000000000000000000010110010011;  //addi x11, x0, 000000000000b
+		memory[22] = 32'b 00000000001100000000011000010011;  //addi x12, x0, 000000000011b
+		memory[23] = 32'b 00111110100000000000011010010011;  //addi x13, x0, 1000d {store address}
+		memory[24] = 32'b 10010110100101010111011110010011;  //andi x15, x10, 100101101001b    --> x15 contains 100101101001
+		memory[25] = 32'b 00000000111101101010000000100011;  //sw x13, 0(x15)
+		memory[26] = 32'b 00000000001101010111011110010011;  //andi x15, x10, 000000000011b    --> x15 contains 000000000001
+		memory[27] = 32'b 00000000111101101010000000100011;  //sw x13, 0(x15)
+		//31 29 28 26 25 24    20 19  15 14 12 11    7 6     0
+		// nf | mop | vm |  rs2 |  rs1 | width |  vd  |0000111| VL* strided
+        memory[28] = 32'b 00001010011100001111000010000111; //  000 010 1 00111 00001 111 00001 0000111 vlse.v v1, (x1), x7
+		memory[29] = 32'h 19000093; //addi x1,x0,400
+		memory[30] = 32'b 00001010011100001111000100000111; //  000 010 1 00111 00001 111 00010 0000111 vlse.v v2, (x1), x7
+		memory[31] = 32'h 1E400093; //addi x1,x0,484   ---> Loading 00000093 repetetively into v8
+		memory[32] = 32'b 00001010011100001111010000000111; //  000 010 1 00111 00001 111 01000 0000111 vlse.v v8, (x1), x7
+		memory[33] = 32'b 11100110001000001000010001010111; //  111001 1 00010 00001 000 01000 1010111  vdot.vv v8, v2, v1
+		memory[34] = 32'b 11100110001000001000010001010111; //  111001 1 00010 00001 000 01000 1010111  vdot.vv v8, v2, v1
+        // Strided store instruction with the same stride in x7 i.e 8
+		memory[35] = 32'h 32000093; //addi x1,x0,800
+		memory[36] = 32'b 00001010011100001111010000100111; //  000 010 1 00111 00001 111 01000 0100111 vsse.v v8, (x1), x7
+
+
+		memory[100] = 32'h 00000201;
+		memory[101] = 32'h 00000605;
+        memory[102] = 32'h 00000a09;
+		memory[103] = 32'h 00000e0d;
+        memory[104] = 32'h 14131211;
+		memory[105] = 32'h 18171615;
+        memory[106] = 32'h 1c1b1a19;
+		memory[107] = 32'h 101f1e1d;
+        memory[108] = 32'h 24232221; 
+		memory[109] = 32'h 28272625;
 	
-		memory[110] = 32'b 00000001000000000000000000000001;    //1 0 0 1 
-		memory[111] = 32'b 00000000000000010000000100000000;    //0 1 1 0
-		memory[112] = 32'b 00000001000000010000000100000000;	//1 1 1 0
-        memory[113] = 32'b 00000000000000000000000000000001;	//0 0 0 1
+		memory[110] = 32'h 0000000a;
+        memory[111] = 32'h 00000014;
+		memory[112] = 32'h 0000001e;
+		memory[113] = 32'h 00000028;
         memory[114] = 32'h 00000032;
 		memory[115] = 32'h 0000003c;
 		memory[116] = 32'h 00000046;
         memory[117] = 32'h 00000050;
 		memory[118] = 32'h 0000005a;
+		memory[119] = 32'h 1000000a;
+        memory[120] = 32'h 11000014;
+		
+		memory[121] = 32'h 1200000a;
+        memory[122] = 32'h 13000014;
+		memory[123] = 32'h 1400001e;
+		memory[124] = 32'h 15000028;
+        memory[125] = 32'h 16000032;
+		memory[126] = 32'h 1700003c;
+		memory[127] = 32'h 18000046;
+        memory[128] = 32'h 19000050;
+		memory[129] = 32'h 2000005a;
+		memory[130] = 32'h 21000050;
+		memory[131] = 32'h 2200005a;
 
 		//Vtype reg is 00000000000, vtype[1:0] -> vlmul[1:0] (sets LMUL value)
 		//							vtype[4:2] -> vsew[2:0] (sets SEW value)
@@ -184,6 +214,8 @@ module testbench;
 				mem_ready <= 1;
 				mem_rdata <= memory[mem_addr >> 2];
 				// $display("Time:%d ,Data read from memory: %x, addr: %d", $time,mem_rdata, mem_addr);
+				if(mem_wstrb != 4'b0)
+					$display("Data written to memory addr: %d is %b, mem_wstrb: %b, time:%d", mem_addr, mem_wdata, mem_wstrb, $time);
 				if (mem_wstrb[0]) memory[mem_addr >> 2][ 7: 0] <= mem_wdata[ 7: 0];
 				if (mem_wstrb[1]) memory[mem_addr >> 2][15: 8] <= mem_wdata[15: 8];
 				if (mem_wstrb[2]) memory[mem_addr >> 2][23:16] <= mem_wdata[23:16];
@@ -200,9 +232,9 @@ module testbench;
 			if (vec_mem_addr < 1024) begin
 				vec_mem_rdata <= memory[vec_mem_addr >> 2];
 				vec_mem_ready <= 1;
-				// $display("mem_addr: %d, mem_data: %x,mem_ready:%d, time:%d",vec_mem_addr, vec_mem_rdata,vec_mem_ready, $time);
-				// $display("Time:%d ,Data read from memory: %x, addr: %d", $time,vec_mem_rdata, vec_mem_addr);
-				if(|(vec_mem_wstrb) == 1)
+				// if(vec_mem_wstrb == 4'b0)
+					// $display("mem_addr: %d, mem_data: %x,mem_ready:%d, time:%d",vec_mem_addr, vec_mem_rdata,vec_mem_ready, $time);
+				if(vec_mem_wstrb != 4'b0)
 					$display("Data written to memory addr: %d is %x, mem_wstrb: %b, time:%d", vec_mem_addr, vec_mem_wdata, vec_mem_wstrb, $time);
 				if (vec_mem_wstrb[0]) memory[vec_mem_addr >> 2][ 7: 0] <= vec_mem_wdata[ 7: 0];
 				if (vec_mem_wstrb[1]) memory[vec_mem_addr >> 2][15: 8] <= vec_mem_wdata[15: 8];
@@ -213,15 +245,3 @@ module testbench;
 		end
 	end
 endmodule
-
-
-// li x1, 0x3BC
-// li x3, 0x320
-// li x2, 0x020
-// vsetvli x4, x2, e8, m1
-// vle.v v0, x1
-// vle.v v1, x3
-// vmult.vv v2, v0, v1
-// vse.v v2, x1
-// nop
-// nop

@@ -123,11 +123,11 @@ module testbench;
 			memory[i] = 32'h 00000093; //NOP
 		
 		//Vl is the number of elements to modify every time
-		memory[0] = 32'h 01000113; //---> to set vl(o of elements) as 16 (Addi x2,x0,4) 
+		memory[0] = 32'h 01000113; //---> to set vl(no of elements) as 16 (Addi x2,x0,4) 
 		// Ox 00017257
 		memory[1] = 32'b 00000000100000010111001001010111; //Vsetvli x4,x2, LMUL=1 E32 --->  0 00000001000 00010 111 00100 1010111 ---> 00817257 (sew - 32)
 		memory[2] = 32'h 19000093; //addi x1,x0,400
-        memory[3] = 32'h 00400393; //addi x7,x0,4  --> Loading the stride
+        memory[3] = 32'h 00100393; //addi x7,x0,1  --> Loading the stride
 		//31 29 28 26 25 24    20 19  15 14 12 11    7 6     0
 		// nf | mop | vm |  rs2 |  rs1 | width |  vd  |0000111| VL* strided
         memory[4] = 32'b 00001010011100001111000010000111; //  000 010 1 00111 00001 111 00001 0000111 vlse.v v1, (x1), x7
@@ -137,8 +137,8 @@ module testbench;
 		memory[7] = 32'h 1E400093; //addi x1,x0,484   ---> Loading 00000093 repetetively into v8
 		memory[8] = 32'b 00001010011100001111010000000111; //  000 010 1 00111 00001 111 01000 0000111 vlse.v v8, (x1), x7
 		// memory[9] = 32'b 00000010001000001000010001010111; //  000000 1 00010 00001 000 01000 1010111  vadd.vv v8,v2,v1 --> 0x0a100157
-		// memory[9] = 32'b 10010110001000001000010001010111; //  000000 1 00010 00001 000 01000 1010111  vmul.vv v8,v2,v1 --> 0x09620857
-		memory[9] = 32'b 11100110001000001000010001010111; //  111001 1 00010 00001 000 01000 1010111  vdot.vv v8, v2, v1
+		memory[9] = 32'b 10010110001000001000010001010111; //  000000 1 00010 00001 000 01000 1010111  vmul.vv v8,v2,v1 --> 0x09620857
+		// memory[9] = 32'b 11100110001000001000010001010111; //  111001 1 00010 00001 000 01000 1010111  vdot.vv v8, v2, v1
         // Strided store instruction with the same stride in x7 i.e 8
 		memory[10] = 32'h 32000093; //addi x1,x0,800
 		memory[11] = 32'b 00001010011100001111010000100111; //  000 010 1 00111 00001 111 01000 0100111 vsse.v v8, (x1), x7
