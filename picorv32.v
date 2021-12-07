@@ -1858,8 +1858,8 @@ module picorv32 #(
 						else if(WITH_PCPI && instr_vec) begin	
 							//If vector co-processor is free and the instrn is vector instrn
 							if(!is_vec_used) begin
-								$display("Entered vector instruction condition in 1840, time: %d", $time);
-								$display("Instruction is %x, rs1:%d, rs2:%d, time:%d",pcpi_insn, cpuregs_rs1, cpuregs_rs2, $time);
+								$display("Entered vector instruction condition in 1861, time: %d", $time);
+								// $display("Instruction is %x, rs1:%d, rs2:%d, time:%d",pcpi_insn, cpuregs_rs1, cpuregs_rs2, $time);
 								//Assuming that ENABLE_REGS_DUALPORT is 1
 								pcpi_vec_valid <= 1;
 								is_vec_used <= 1;
@@ -1871,7 +1871,7 @@ module picorv32 #(
 							//else, it will wait for the ready flag to become 1
 							else begin
 								if(pcpi_vec_ready == 1) begin
-									$display("entered ready codition in 1852");
+									$display("entered ready codition in 1875");
 									// pcpi_vec_valid <= 0;
 									is_vec_used <= 0;
 								end

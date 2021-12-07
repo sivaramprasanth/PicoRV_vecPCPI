@@ -360,3 +360,68 @@
 // 	// assign rdata3 = vregs[raddr3[4:0]];
 
 // endmodule
+
+
+
+
+
+
+//ALU
+else if(instruction==instr_vmulvarp)begin 
+                    // $display("Inside final condition, is_opA_neg:%b, time:%d", is_opA_neg, $time);
+                    if(is_opA_neg[0])   peout[7:0] = -accumulator[7:0];
+                    else                peout[7:0] = accumulator[7:0];
+                    if(is_opA_neg[1])   peout[15:8] = -accumulator[15:8];
+                    else                peout[15:8] = accumulator[15:8];
+                    if(is_opA_neg[2])   peout[23:16] = -accumulator[23:16];
+                    else                peout[23:16] = accumulator[23:16];
+                    if(is_opA_neg[3])   peout[31:24] = -accumulator[31:24];
+                    else                peout[31:24] = accumulator[31:24];
+                end
+
+
+else if(instruction==instr_vdotvarp)begin 
+                    // $display("Inside final condition, is_opA_neg:%b, time:%d", is_opA_neg, $time);
+                    if(is_opA_neg[0])   peout[7:0] = -accumulator[7:0] + opC[7:0];
+                    else                peout[7:0] = accumulator[7:0] + opC[7:0];
+                    if(is_opA_neg[1])   peout[15:8] = -accumulator[15:8] + opC[15:8];
+                    else                peout[15:8] = accumulator[15:8] + opC[15:8];
+                    if(is_opA_neg[2])   peout[23:16] = -accumulator[23:16] + opC[23:16];
+                    else                peout[23:16] = accumulator[23:16] + opC[23:16];
+                    if(is_opA_neg[3])   peout[31:24] = -accumulator[31:24] + opC[31:24];
+                    else                peout[31:24] = accumulator[31:24] + opC[31:24];
+                end
+
+
+reg [3:0] is_opA_neg;
+
+//To check whether opA has negative elements
+always @(posedge clk) begin
+    if(!reset) begin
+        is_opA_neg = 0;
+        temp = 0;
+    end
+    if(is_vap_instr && !temp) begin
+        if(vap == 1) begin
+            if(opA[0]) is_opA_neg[0] = 1;
+            if(opA[8]) is_opA_neg[1] = 1;
+            if(opA[16]) is_opA_neg[2] = 1;
+            if(opA[24]) is_opA_neg[3] = 1;
+            temp = 1;
+        end
+        else if(vap == 2) begin
+            if(opA[1]) is_opA_neg[0] = 1;
+            if(opA[9]) is_opA_neg[1] = 1;
+            if(opA[17]) is_opA_neg[2] = 1;
+            if(opA[25]) is_opA_neg[3] = 1;
+            temp = 1;
+        end
+        else if(vap == 4) begin
+            if(opA[3]) is_opA_neg[0] = 1;
+            if(opA[11]) is_opA_neg[1] = 1;
+            if(opA[19]) is_opA_neg[2] = 1;
+            if(opA[27]) is_opA_neg[3] = 1;
+            temp = 1;
+        end
+    end
+end

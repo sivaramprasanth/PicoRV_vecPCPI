@@ -921,7 +921,7 @@ end
 							mem_wordsize <= 0;
 						end
 						(instr_vload_str): begin
-							$display("Inside v_load_stride condition, new_no_words:%d, time:%d",(((flat_reg_len >> 8)*SEW) / reg_op2), $time);
+							$display("Inside v_load_stride condition, new_no_words:%d, time:%d",(((flat_reg_len >> 8)*SEW)), $time);
 							cpu_state <= cpu_state_ldmem;
                             init_addr <= reg_op1 >> 2; //Initial word addrr
                             final_addr <= ((reg_op1 + (vcsr_vl-1)*reg_op2 + sew_bytes) >> 2);  //Calculates the word addr of final byte 
@@ -938,7 +938,7 @@ end
                             temp_count <= 0;
                             ind1 <= (reg_op1[1:0] << 3); //byte addr to bit addr
 							//This is used when no of mem_reads crosses flat_reg_len bits
-							new_no_words <= (((flat_reg_len >> 8)*SEW) / reg_op2);  //Derives from { flat_reg_len*SEW / (32*8*stride) }
+							new_no_words <= (reg_op2==0)? 64: (((flat_reg_len >> 8)*SEW) / reg_op2);  //Derives from { flat_reg_len*SEW / (32*8*stride) }
 							read_count <= 0;
 							//Number many bits to read in each cycle
 							// if(SEW == 10'b0000100000)
@@ -987,7 +987,7 @@ end
                             temp_count <= 0;
                             ind1 <= (reg_op1[1:0] << 3); //byte addr to bit addr
 							//This is used when no of mem_reads crosses flat_reg_len bits
-							new_no_words <= ((flat_reg_len >> 8)*vap) / reg_op2;  //Derives from { flat_reg_len*SEW / (32*8*stride) }
+							new_no_words <= (reg_op2==0)? 128 : (((flat_reg_len >> 8)*vap) / reg_op2);  //Derives from { flat_reg_len*SEW / (32*8*stride) }
 							read_count <= 0;
 							mem_wordsize <= 0;
 						end
@@ -1042,7 +1042,7 @@ end
 							// ind1 <= 0; 
 							// ind2 <= 0;
 							//This is used when no of mem_reads crosses flat_reg_len bits
-							new_no_words <= ((flat_reg_len >> 8)*SEW) / reg_op2;  //Derives from { flat_reg_len*SEW / (32*8*stride) }
+							new_no_words <= (reg_op2==0)? 64: (((flat_reg_len >> 8)*SEW) / reg_op2);  //Derives from { flat_reg_len*SEW / (32*8*stride) }
 							read_count <= 0;
 							st_data <= 0;
 							st_strb <= 0;
@@ -1097,7 +1097,7 @@ end
 							// ind1 <= 0;
 							// ind2 <= 0; //Used to index the mem strb
 							//This is used when no of mem_reads crosses flat_reg_len bits
-							new_no_words <= ((flat_reg_len >> 8)*SEW) / reg_op2;  //Derives from { flat_reg_len*SEW / (32*8*stride) }
+							new_no_words <= (reg_op2==0)? 128 : (((flat_reg_len >> 8)*vap) / reg_op2);  //Derives from { flat_reg_len*SEW / (32*8*stride) }
 							read_count <= 0;
 							st_data <= 0;
 							st_strb <= 0;
@@ -1108,8 +1108,9 @@ end
 							cpu_state <= cpu_state_exec;
 							if(instr_vadd)
 								micro_exec_instr <= p_instr_vadd__vv;
-							if(instr_vmul)
+							if(instr_vmul) begin
 								micro_exec_instr <= p_instr_vmul__vv;
+							end
 							vecregs_waddr <= decoded_vd;
 							vecregs_raddr1 <= decoded_vs1;
 							vecregs_raddr2 <= decoded_vs2;
@@ -1239,7 +1240,7 @@ end
 								cnt <= cnt + 32;
 								//If we are loading the last word, then go to ldmem2 stage to load the data into vector reg
 								if(mem_read_no == 1) begin
-									$display("Inside mem_str_ready2,no_words:%d, ld_data :%x, time:%d",no_words, ld_data, $time);
+									// $display("Inside mem_str_ready2,no_words:%d, ld_data :%x, time:%d",no_words, ld_data, $time);
 									//Irrespective of SEW, the mem_wordsize will be 1 (used in mem FSM)
 									mem_wordsize <= 1;
 									mem_valid <= 0;
@@ -1431,7 +1432,7 @@ end
 				end
 				cpu_state_exec: begin
 					if(temp_var == 0) begin
-						// $display("Inside cnt=0 condition, no_words:%d, v_membits:%d, time: %d",no_words, v_membits[4:0], $time);
+						$display("Inside cnt=0 condition, is_port3_insn:%b, no_words:%d, v_membits:%d, time: %d",is_port3_instr, no_words, v_membits[4:0], $time);
 						unpack_data <= 1;  //We have to read three registers here 
 						bits_remaining <= v_membits[4:0]; //Remainder after dividing mem_bits with 32
 						condition_bit <= 1;   //Used to synchronize the data forwarding

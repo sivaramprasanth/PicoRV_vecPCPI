@@ -38,42 +38,9 @@ reg [31:0] copB;
 reg temp;
 
 wire is_vap_instr = |{instruction==instr_vaddvarp, instruction==instr_vmulvarp, instruction==instr_vdotvarp, instruction==instr_vsubvarp};
-reg [3:0] is_opA_neg;
-
-//To check whether opA has negative elements
-always @(posedge clk) begin
-    if(!reset) begin
-        is_opA_neg = 0;
-        temp = 0;
-    end
-    if(is_vap_instr && !temp) begin
-        if(vap == 1) begin
-            if(opA[0]) is_opA_neg[0] = 1;
-            if(opA[8]) is_opA_neg[1] = 1;
-            if(opA[16]) is_opA_neg[2] = 1;
-            if(opA[24]) is_opA_neg[3] = 1;
-            temp = 1;
-        end
-        else if(vap == 2) begin
-            if(opA[1]) is_opA_neg[0] = 1;
-            if(opA[9]) is_opA_neg[1] = 1;
-            if(opA[17]) is_opA_neg[2] = 1;
-            if(opA[25]) is_opA_neg[3] = 1;
-            temp = 1;
-        end
-        else if(vap == 4) begin
-            if(opA[3]) is_opA_neg[0] = 1;
-            if(opA[11]) is_opA_neg[1] = 1;
-            if(opA[19]) is_opA_neg[2] = 1;
-            if(opA[27]) is_opA_neg[3] = 1;
-            temp = 1;
-        end
-    end
-end
 
 always @(posedge clk) begin
-    // $display("Entered start state, reset:%d, time:%d",reset, $time);
-    if(!reset) begin
+    if(!reset || !start) begin
         states = 0;
         peout  = 0;
         accumulator = 0;
@@ -86,19 +53,17 @@ always @(posedge clk) begin
         case(states)
             startstate:begin
                 if(start)begin
+                    // $display("Entered start state,instr:%b, reset:%d, time:%d",instruction, reset, $time);
                     done <= 0;
                     accumulator <= 0;
-                    if(|{instruction == instr_vmul__vv,instruction == instr_vmulvarp,instruction == instr_vdot__vv, instruction == instr_vdotvarp}) begin
-                        // $display("Entered start state, time:%d", $time);
+                    if(|{instruction == instr_vmul__vv,instruction == instr_vmulvarp,instruction == instr_vdot__vv, instruction == instr_vdotvarp}) 
+                    begin
                         states = multstate;
                         //No of clock cycles needed to get the result using bit serial multiplier
                         cycles = (instruction==instr_vmulvarp || instruction == instr_vdotvarp)? ({4'h0,vap}):SEW[7:0]; 
-
                         first_cmpte = 1;
-                        // to retain local copy and not interfere with other changer is depacking module
                     end
                     else begin
-                        // $display("Entered start state, time:%d", $time);
                         states = completestate;    
                     end
                 end
@@ -204,29 +169,15 @@ always @(posedge clk) begin
                     accumulator[7:0] = opA[7:0] + ((instruction == instr_vaddvarp)? ((opB[7:0]>>(8-vap)) | ((opB[7])?((8'hFF)<<(vap)):8'h00)) : ( (instruction == instr_vsubvarp)?-((opB[7:0]>>(8-vap)) | ((opB[7])?((8'hFF)<<(vap)):8'h00)) :0) );
                     peout = accumulator;
                 end
-                else if(instruction==instr_vmulvarp)begin 
-                    // $display("Inside final condition, is_opA_neg:%b, time:%d", is_opA_neg, $time);
-                    if(is_opA_neg[0])   peout[7:0] = -accumulator[7:0];
-                    else                peout[7:0] = accumulator[7:0];
-                    if(is_opA_neg[1])   peout[15:8] = -accumulator[15:8];
-                    else                peout[15:8] = accumulator[15:8];
-                    if(is_opA_neg[2])   peout[23:16] = -accumulator[23:16];
-                    else                peout[23:16] = accumulator[23:16];
-                    if(is_opA_neg[3])   peout[31:24] = -accumulator[31:24];
-                    else                peout[31:24] = accumulator[31:24];
-                end
                 else if(instruction==instr_vdotvarp)begin 
-                    // $display("Inside final condition, is_opA_neg:%b, time:%d", is_opA_neg, $time);
-                    if(is_opA_neg[0])   peout[7:0] = -accumulator[7:0] + opC[7:0];
-                    else                peout[7:0] = accumulator[7:0] + opC[7:0];
-                    if(is_opA_neg[1])   peout[15:8] = -accumulator[15:8] + opC[15:8];
-                    else                peout[15:8] = accumulator[15:8] + opC[15:8];
-                    if(is_opA_neg[2])   peout[23:16] = -accumulator[23:16] + opC[23:16];
-                    else                peout[23:16] = accumulator[23:16] + opC[23:16];
-                    if(is_opA_neg[3])   peout[31:24] = -accumulator[31:24] + opC[31:24];
-                    else                peout[31:24] = accumulator[31:24] + opC[31:24];
+                    // $display("Inside final condition, instr:%b, time:%d",instruction, $time);
+                    peout[7:0] = accumulator[7:0] + opC[7:0];
+                    peout[15:8] = accumulator[15:8] + opC[15:8];
+                    peout[23:16] = accumulator[23:16] + opC[23:16];
+                    peout[31:24] = accumulator[31:24] + opC[31:24];
                 end
-                else if(instruction==instr_vmul__vv) begin
+                else if(|{instruction==instr_vmul__vv,instruction==instr_vmulvarp})begin
+                    // $display("Inside final condition, instr:%b, time:%d",instruction, $time);
                     peout = accumulator;
                 end
                 temp = 0;
