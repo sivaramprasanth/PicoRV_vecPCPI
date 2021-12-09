@@ -1510,10 +1510,6 @@ end
 							no_words <= no_words-1;
 						end 
 					end
-					// if(ind1 > 512) begin
-					// 	cpu_state <= cpu_state_exec;
-					// 	ind1 <= 0;
-					// end
 					if(no_words == 0) begin
 						// $display("V_membits:%d, bits remaining after words: %d, time:%d", v_membits, bits_remaining, $time);
 						unpack_data <= 0;

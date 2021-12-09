@@ -42,7 +42,7 @@ wire is_vap_instr = |{instruction==instr_vaddvarp, instruction==instr_vmulvarp, 
 always @(posedge clk) begin
     if(!reset || !start) begin
         states = 0;
-        peout  = 0;
+        peout  = peout;
         accumulator = 0;
         first_cmpte = 0;
         cycles = 0;
@@ -54,8 +54,8 @@ always @(posedge clk) begin
             startstate:begin
                 if(start)begin
                     // $display("Entered start state,instr:%b, reset:%d, time:%d",instruction, reset, $time);
-                    done <= 0;
-                    accumulator <= 0;
+                    done = 0;
+                    accumulator = 0;
                     if(|{instruction == instr_vmul__vv,instruction == instr_vmulvarp,instruction == instr_vdot__vv, instruction == instr_vdotvarp}) 
                     begin
                         states = multstate;
