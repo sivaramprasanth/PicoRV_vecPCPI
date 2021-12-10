@@ -35,7 +35,6 @@ reg [31:0] accumulator;  //Stores the final result
 reg [7:0]  cycles;
 reg first_cmpte;
 reg [31:0] copB;
-reg temp;
 
 wire is_vap_instr = |{instruction==instr_vaddvarp, instruction==instr_vmulvarp, instruction==instr_vdotvarp, instruction==instr_vsubvarp};
 
@@ -180,7 +179,6 @@ always @(posedge clk) begin
                     // $display("Inside final condition, instr:%b, time:%d",instruction, $time);
                     peout = accumulator;
                 end
-                temp = 0;
                 done = 1;
                 states = startstate;
             end

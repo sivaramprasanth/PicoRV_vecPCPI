@@ -2706,6 +2706,10 @@ module vector_regs (
 								rdata2 <= vregs[raddr2[4:0]][511:480];
 								// $display("rdata1: %x, rdata2:%x, raddr1:%d, raddr2:%d, rstrb:%b, time:%d",rdata1, rdata2, raddr1, raddr2, vec_rstrb1, $time);
 							end
+				default: begin
+								rdata1 <= 0;
+								rdata2 <= 0;
+				end
 			endcase
 		end
 		if(port3_en) begin
@@ -2758,6 +2762,9 @@ module vector_regs (
 			vec_rstrb1[15]: begin
 							rdata1 <= vregs[raddr1[4:0]][511:480];
 						   end
+			default: begin
+							rdata1 <= 0;
+			end
 			endcase
 		end
 	end
