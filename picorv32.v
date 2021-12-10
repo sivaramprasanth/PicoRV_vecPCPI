@@ -84,7 +84,7 @@ module picorv32 #(
 	parameter [ 0:0] ENABLE_DIV = 0, //Enables PCPI and instantiates the picorv32_pcpi_div core that implements the DIV[U]/REM[U] instructions.
 	//VEC_BUS_WIDTH is for co-processors (It can have the values of 32,64 or 128 bits)
 	parameter [7:0]  VEC_BUS_WIDTH = 8'b10000000,
-	parameter [ 0:0] ENABLE_VEC = 0, //Enables PCPI and instantiates the picorv32_pcpi_vec core
+	parameter [ 0:0] ENABLE_VEC = 1, //Enables PCPI and instantiates the picorv32_pcpi_vec core
 	parameter [ 0:0] ENABLE_IRQ = 0,
 	parameter [ 0:0] ENABLE_IRQ_QREGS = 1,
 	parameter [ 0:0] ENABLE_IRQ_TIMER = 1,
@@ -403,12 +403,6 @@ module picorv32 #(
 				pcpi_int_wr = pcpi_div_wr;
 				pcpi_int_rd = pcpi_div_rd;
 			end
-			//For vector instructions
-			// ENABLE_VEC && pcpi_vec_ready: begin
-			// 	// vecregs_write = pcpi_vec_wr;
-			// 	valu_out = vec_result; 
-			// 	$display("Vector instruction result: 0x%x", valu_out);
-			// end
 		endcase
 	end
 

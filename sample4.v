@@ -547,6 +547,7 @@ end
 				2: begin
 					arth_data_ready <= 0;
 					if(instr_vadd || instr_vmul || instr_vdot) begin
+						// $display("ind1:%d, aluout:%x, time:%d", ind1, alu_out[ind1+:32], $time);
 						alu_wdata[31:0]   <= alu_out[ind1 +: 32];
 						arth_data_ready <= 1; 
 						ind1 <= ind1 + 4*8;

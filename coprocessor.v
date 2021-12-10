@@ -41,7 +41,6 @@ module picorv32_pcpi_vec #(
 	localparam [4:0] no_of_alus = 16;
 	reg [31:0] reg_op1; //stores the value of pcpi_cpurs1
 	reg [31:0] reg_op2; //stores the value of pcpi_cpurs2
-	reg [31:0] temp_reg; //Used by vstore instruction
 
 	//Memory Interface
 	reg [1:0] mem_state;
@@ -55,9 +54,7 @@ module picorv32_pcpi_vec #(
 
 	wire mem_busy = |{mem_do_rdata, mem_do_wdata};
 
-	reg [1:0] mem_str_state; //FSM for strided load.
 	reg mem_str_ready, mem_str_ready2;  //Used as the ready signal for strided load instruction
-	reg [1:0] vstore_bit;  //Used to initialize the store instruction
 
 //memory interface 
 always @(posedge clk) begin
@@ -673,10 +670,8 @@ end
 			instr_vsubvarp <= 0;
 			instr_vmulvarp <= 0;
 			instr_vdotvarp <= 0;
-			mem_str_state <= 0; //default value of mem_str_state for strided loads
 			mem_str_ready <= 0; //default value for mem_str_ready
 			mem_str_ready2 <= 0; ////default value for mem_str_ready2
-			vstore_bit <= 2'b00; //Resetting the vstore bit
 			mem_wstrb <= 4'b0;
 			unpack_index <= 0;
             unpack_index2 <= 0;
@@ -773,7 +768,6 @@ end
 	reg [31:0] vecrs1;
 	reg [31:0] vecrs2;
 	reg [31:0] vecrs3; //For dit product
-	reg [31:0] vecrd;
 
 	reg set_mem_do_rdata;
 	reg set_mem_do_wdata;
@@ -841,7 +835,6 @@ end
 		if(!resetn || !pcpi_valid || !is_vec_instr) begin
 			// $display("Inside reset condition, time: %d, reset:%b, pcpi_valid:%b, is_vec_instr: %b", $time, resetn, pcpi_valid, is_vec_instr);
 			pcpi_rd <= 0;
-			vecrd <= 0;
 			pcpi_wait <= 0;
 	        pcpi_ready <= 0;
             pcpi_wr <= 0;
@@ -850,7 +843,6 @@ end
 			latched_vstore <= 0;
 			vecregs_write <= 0; //If pcpi_valid is 0, make wen as 0
 			mem_valid <= 0; //If pcpi_valid is 0, mem_valid = 0
-			temp_reg <= 0; //Making the store data as 0 in default
 			mem_do_wdata <= 0;
 			vecregs_rstrb1 <= 16'b0;
 			vecregs_wstrb_temp <= 16'b0;
@@ -904,7 +896,6 @@ end
 							vecregs_raddr1 <= decoded_vs1;
 							mem_str_ready <= 0; //Initial value of mem_str_ready
 							mem_str_ready2 <= 0;
-							mem_str_state <= 2'b00; //Initial state for strided load
 							//Updating mem_bits depending on vcsr_vl and v_enc_width(i.e instr[14:12])
 							v_membits <= vcsr_vl * ((v_enc_width==3'b000)? 8:(v_enc_width==3'b101)?16:(v_enc_width==3'b110)?32:SEW); 
                             no_words <= ((vcsr_vl*SEW)>>5); //No of words to read
@@ -929,7 +920,6 @@ end
 							vecregs_raddr1 <= decoded_vs1;
 							mem_str_ready <= 0; //Initial value of mem_str_ready
 							mem_str_ready2 <= 0;
-							mem_str_state <= 2'b00; //Initial state for strided load
 							//Updating mem_bits depending on vcsr_vl and v_enc_width(i.e instr[14:12])
 							v_membits <= vcsr_vl * ((v_enc_width==3'b000)? 8:(v_enc_width==3'b101)?16:(v_enc_width==3'b110)?32:SEW); 
                             no_words <= ((vcsr_vl*SEW)>>5); //No of words to read
@@ -954,7 +944,6 @@ end
 							vecregs_raddr1 <= decoded_vs1;
 							mem_str_ready <= 0; //Initial value of mem_str_ready
 							mem_str_ready2 <= 0;
-							mem_str_state <= 2'b00; //Initial state for strided load
 							//Updating mem_bits depending on vcsr_vl and v_enc_width(i.e instr[14:12])
 							v_membits <= vcsr_vl * ((v_enc_width==3'b000)? 8:(v_enc_width==3'b101)?16:(v_enc_width==3'b110)?32:vap); 
                             no_words <= ((vcsr_vl*vap)>>5); //No of words to read
@@ -977,7 +966,6 @@ end
 							vecregs_raddr1 <= decoded_vs1;
 							mem_str_ready <= 0; //Initial value of mem_str_ready
 							mem_str_ready2 <= 0;
-							mem_str_state <= 2'b00; //Initial state for strided load
 							//Updating mem_bits depending on vcsr_vl and v_enc_width(i.e instr[14:12])
 							v_membits <= vcsr_vl * ((v_enc_width==3'b000)? 8:(v_enc_width==3'b101)?16:(v_enc_width==3'b110)?32:vap); 
                             no_words <= ((vcsr_vl*vap)>>5); //No of words to readEntered vector instruction condition in 1840, time:                 1280
@@ -1001,7 +989,6 @@ end
 							vecregs_raddr2 <= decoded_vs2;
 							vecregs_rstrb1 <= 16'b1;  //To read the first word
 							mem_str_ready <= 0; //Initial value of mem_str_ready
-							mem_str_state <= 2'b00; //Initial state for strided load
 							//Updating mem_bits depending on vcsr_vl and v_enc_width(i.e instr[14:12])
 							v_membits <= vcsr_vl * ((v_enc_width==3'b000)? 8:(v_enc_width==3'b101)?16:(v_enc_width==3'b110)?32:SEW); 
 							no_words <= ((vcsr_vl*SEW)>>5); //No of words to read from vec reg
@@ -1029,7 +1016,6 @@ end
 							vecregs_raddr2 <= decoded_vs2;
 							vecregs_rstrb1 <= 16'b1;  //To read the first word
 							mem_str_ready <= 0; //Initial value of mem_str_ready
-							mem_str_state <= 2'b00; //Initial state for strided load
 							//Updating mem_bits depending on vcsr_vl and v_enc_width(i.e instr[14:12])
 							v_membits <= vcsr_vl * ((v_enc_width==3'b000)? 8:(v_enc_width==3'b101)?16:(v_enc_width==3'b110)?32:SEW); 
 							no_words <= ((vcsr_vl*SEW)>>5); //No of words to read from vec reg
@@ -1056,7 +1042,6 @@ end
 							vecregs_raddr2 <= decoded_vs2;
 							vecregs_rstrb1 <= 16'b1;  //To read the first word
 							mem_str_ready <= 0; //Initial value of mem_str_ready
-							mem_str_state <= 2'b00; //Initial state for strided load
 							//Updating mem_bits depending on vcsr_vl and v_enc_width(i.e instr[14:12])
 							v_membits <= vcsr_vl * ((v_enc_width==3'b000)? 8:(v_enc_width==3'b101)?16:(v_enc_width==3'b110)?32:vap); 
 							no_words <= ((vcsr_vl*vap)>>5); //No of words to read from vec reg
@@ -1084,7 +1069,6 @@ end
 							vecregs_raddr2 <= decoded_vs2;
 							vecregs_rstrb1 <= 16'b1;  //To read the first word
 							mem_str_ready <= 0; //Initial value of mem_str_ready
-							mem_str_state <= 2'b00; //Initial state for strided load
 							//Updating mem_bits depending on vcsr_vl and v_enc_width(i.e instr[14:12])
 							v_membits <= vcsr_vl * ((v_enc_width==3'b000)? 8:(v_enc_width==3'b101)?16:(v_enc_width==3'b110)?32:vap); 
 							no_words <= ((vcsr_vl*vap)>>5); //No of words to read from vec reg
@@ -1164,7 +1148,6 @@ end
 							cnt <= 0;
 							elem_n <= 0;
 							ind1 <= 0;
-							elem_n <= 0;
 							temp_var <= 0;
 							temp_var3 <= 0;
 							temp_count <= 0;
@@ -1191,7 +1174,6 @@ end
 							cnt <= 0;
 							elem_n <= 0;
 							ind1 <= 0;
-							elem_n <= 0;
 							temp_var <= 0;
                             temp_var3 <= 0;
 							temp_count <= 0;

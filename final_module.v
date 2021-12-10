@@ -65,7 +65,7 @@ module final_module #(
 	
 
 	picorv32 #(
-        .ENABLE_VEC(enable_vec)
+        .ENABLE_VEC(1)
 	) uut (
 		.clk         (clk        ),
 		.resetn      (resetn     ),
