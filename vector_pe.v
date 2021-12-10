@@ -54,8 +54,8 @@ always @(posedge clk) begin
             startstate:begin
                 if(start)begin
                     // $display("Entered start state,instr:%b, reset:%d, time:%d",instruction, reset, $time);
-                    done = 0;
-                    accumulator = 0;
+                    done <= 0; //Should be this, don't change
+                    accumulator <= 0;
                     if(|{instruction == instr_vmul__vv,instruction == instr_vmulvarp,instruction == instr_vdot__vv, instruction == instr_vdotvarp}) 
                     begin
                         states = multstate;
