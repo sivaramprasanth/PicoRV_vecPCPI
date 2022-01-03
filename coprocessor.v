@@ -42,6 +42,17 @@ module picorv32_pcpi_vec #(
 	reg [31:0] reg_op1; //stores the value of pcpi_cpurs1
 	reg [31:0] reg_op2; //stores the value of pcpi_cpurs2
 
+	//Instruction decoder variables
+	reg instr_vsetvli, instr_vsetvl, instr_vsetprecision; //Vec instrn to set the csr reg values
+	reg instr_vload,instr_vload_str,instr_vstore, instr_vstore_str;   //Vec load and store instr
+	reg instr_vdot,instr_vadd, instr_vmul, port3_data, temp_var3; //For dot product and addition
+	wire is_vec_instr, is_vap_instr, is_port3_instr; ////To check whether the forwarded instruction to coprocessor is vector instruction or not
+
+	//Instructions for variable bit precision {Currently, doesn't support subtraction}
+	reg instr_vleuvarp, instr_vlesvarp, instr_vseuvarp, instr_vsesvarp, instr_vaddvarp, instr_vsubvarp, instr_vmulvarp, instr_vdotvarp;
+
+
+
 	//Memory Interface
 	reg [1:0] mem_state;
 	reg [1:0] mem_wordsize; //To tell whether to read/write whole word or a part of the word
@@ -633,15 +644,7 @@ end
 			endcase
 		end
 	end
-	//Instruction decoder
-	reg instr_vsetvli, instr_vsetvl, instr_vsetprecision; //Vec instrn to set the csr reg values
-	reg instr_vload,instr_vload_str,instr_vstore, instr_vstore_str;   //Vec load and store instr
-	reg instr_vdot,instr_vadd, instr_vmul, port3_data, temp_var3; //For dot product and addition
-	wire is_vec_instr, is_vap_instr, is_port3_instr; ////To check whether the forwarded instruction to coprocessor is vector instruction or not
-
-	//Instructions for variable bit precision {Currently, doesn't support subtraction}
-	reg instr_vleuvarp, instr_vlesvarp, instr_vseuvarp, instr_vsesvarp, instr_vaddvarp, instr_vsubvarp, instr_vmulvarp, instr_vdotvarp;
-	
+		
 	assign is_vec_instr = |{instr_vsetvli,instr_vsetvl,instr_vsetprecision,instr_vload,instr_vload_str, instr_vleuvarp, instr_vlesvarp, instr_vstore, instr_vstore_str, instr_vseuvarp,
 							instr_vsesvarp, instr_vdot, instr_vadd, instr_vmul, instr_vaddvarp, instr_vsubvarp, instr_vmulvarp, instr_vdotvarp};
 	assign is_vap_instr = |{instr_vleuvarp, instr_vlesvarp, instr_vsesvarp, instr_vseuvarp, instr_vsetprecision, instr_vaddvarp, instr_vsubvarp, instr_vmulvarp, instr_vdotvarp}; //To heck whether the instruction is variable bit one
@@ -670,13 +673,8 @@ end
 			instr_vsubvarp <= 0;
 			instr_vmulvarp <= 0;
 			instr_vdotvarp <= 0;
-			mem_str_ready <= 0; //default value for mem_str_ready
-			mem_str_ready2 <= 0; ////default value for mem_str_ready2
 			mem_wstrb <= 4'b0;
-			unpack_index <= 0;
-            unpack_index2 <= 0;
 			unpack_data <= 0; //Used in case statement
-			arth_data_ready <= 0;
 			port3_data <= 0;
 		end
 		else begin

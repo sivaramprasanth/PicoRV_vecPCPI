@@ -8,13 +8,13 @@
 
 `timescale 1 ns / 1 ps
 
-module final_module #(
+module final_module2 #(
   parameter [0:0] enable_vec = 1
 ) (
     input clk,
     input resetn,
-	output reg memory_wdata,
-	output reg memory_wstrb
+	output memory_wdata,
+	output memory_wstrb
 );
 
     // parameter enable_vec = 1;
@@ -231,8 +231,8 @@ module final_module #(
 			if (mem_addr < 1024) begin
 				mem_ready <= 1;
 				mem_rdata <= memory[mem_addr >> 2];
-				memory_wdata <= mem_wdata[0];
-				memory_wstrb <= mem_wstrb[0];
+				memory_wdata <= mem_wdata;
+				memory_wstrb <= mem_wstrb;
 				// $display("Time:%d ,Data read from memory: %x, addr: %d", $time,mem_rdata, mem_addr);
 				if(mem_wstrb != 4'b0)
 					$display("Data written to memory addr: %d is %b, mem_wstrb: %b, time:%d", mem_addr, mem_wdata, mem_wstrb, $time);

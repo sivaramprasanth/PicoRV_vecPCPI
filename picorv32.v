@@ -1307,7 +1307,6 @@ module picorv32 #(
 			instr_vaddvarp <= 0;
 			instr_vdotvarp <= 0;
 			instr_vsubvarp <= 0;
-			is_vec_used  <= 0; //resetting is_vec_used 
 		end
 	end
 

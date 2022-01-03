@@ -4,10 +4,13 @@
 module final_module_tb;
 	reg clk = 1;
 	reg resetn = 0;
-
+	wire mem_wdata;
+	wire mem_wstrb;
     final_module dut(
         .clk(clk),
-        .resetn(resetn)
+        .resetn(resetn),
+		.memory_wdata(mem_wdata),
+		.memory_wstrb(mem_wstrb)
     );
 
  	always #5 clk = ~clk;
