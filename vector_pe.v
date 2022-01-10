@@ -1,4 +1,3 @@
-
 module vector_processing_element(
     input clk,
     input reset,

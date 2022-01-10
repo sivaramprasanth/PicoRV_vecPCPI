@@ -1,0 +1,884 @@
+$date
+	Sun Jan  9 11:16:58 2022
+$end
+$version
+	Icarus Verilog
+$end
+$timescale
+	1s
+$end
+$scope module alu_tb $end
+$var wire 1 ! reset $end
+$var wire 512 " alu_out [511:0] $end
+$var wire 1 # alu_done $end
+$var reg 10 $ SEW [9:0] $end
+$var reg 1 % clk $end
+$var reg 8 & micro_exec_instr [7:0] $end
+$var reg 512 ' opA [511:0] $end
+$var reg 512 ( opB [511:0] $end
+$var reg 512 ) opC [511:0] $end
+$var reg 1 * resetn $end
+$var reg 4 + vap [3:0] $end
+$scope module dut $end
+$var wire 10 , SEW [9:0] $end
+$var wire 1 % clk $end
+$var wire 8 - micro_exec_instr [7:0] $end
+$var wire 512 . opA [511:0] $end
+$var wire 512 / opB [511:0] $end
+$var wire 512 0 opC [511:0] $end
+$var wire 1 ! resetn $end
+$var wire 4 1 vap [3:0] $end
+$var wire 512 2 pe_out [511:0] $end
+$var wire 1 3 is_vec_instr $end
+$var wire 1 4 is_vap_instr $end
+$var wire 1 5 is_port3_instr $end
+$var wire 1 6 done9 $end
+$var wire 1 7 done8 $end
+$var wire 1 8 done7 $end
+$var wire 1 9 done6 $end
+$var wire 1 : done5 $end
+$var wire 1 ; done4 $end
+$var wire 1 < done3 $end
+$var wire 1 = done2 $end
+$var wire 1 > done16 $end
+$var wire 1 ? done15 $end
+$var wire 1 @ done14 $end
+$var wire 1 A done13 $end
+$var wire 1 B done12 $end
+$var wire 1 C done11 $end
+$var wire 1 D done10 $end
+$var wire 1 E done1 $end
+$var wire 1 # alu_done $end
+$var reg 1 F alu_enb $end
+$var reg 512 G alu_out [511:0] $end
+$var reg 512 H new_opA [511:0] $end
+$var reg 512 I new_opB [511:0] $end
+$var reg 512 J new_opC [511:0] $end
+$scope module pe1 $end
+$var wire 10 K SEW [9:0] $end
+$var wire 1 % clk $end
+$var wire 8 L instruction [7:0] $end
+$var wire 32 M opA [31:0] $end
+$var wire 32 N opB [31:0] $end
+$var wire 32 O opC [31:0] $end
+$var wire 1 ! reset $end
+$var wire 1 F start $end
+$var wire 4 P vap [3:0] $end
+$var wire 1 Q is_vap_instr $end
+$var reg 32 R accumulator [31:0] $end
+$var reg 32 S copB [31:0] $end
+$var reg 8 T cycles [7:0] $end
+$var reg 1 E done $end
+$var reg 1 U first_cmpte $end
+$var reg 32 V peout [31:0] $end
+$var reg 4 W states [3:0] $end
+$upscope $end
+$scope module pe10 $end
+$var wire 10 X SEW [9:0] $end
+$var wire 1 % clk $end
+$var wire 8 Y instruction [7:0] $end
+$var wire 32 Z opA [31:0] $end
+$var wire 32 [ opB [31:0] $end
+$var wire 32 \ opC [31:0] $end
+$var wire 1 ! reset $end
+$var wire 1 F start $end
+$var wire 4 ] vap [3:0] $end
+$var wire 1 ^ is_vap_instr $end
+$var reg 32 _ accumulator [31:0] $end
+$var reg 32 ` copB [31:0] $end
+$var reg 8 a cycles [7:0] $end
+$var reg 1 D done $end
+$var reg 1 b first_cmpte $end
+$var reg 32 c peout [31:0] $end
+$var reg 4 d states [3:0] $end
+$upscope $end
+$scope module pe11 $end
+$var wire 10 e SEW [9:0] $end
+$var wire 1 % clk $end
+$var wire 8 f instruction [7:0] $end
+$var wire 32 g opA [31:0] $end
+$var wire 32 h opB [31:0] $end
+$var wire 32 i opC [31:0] $end
+$var wire 1 ! reset $end
+$var wire 1 F start $end
+$var wire 4 j vap [3:0] $end
+$var wire 1 k is_vap_instr $end
+$var reg 32 l accumulator [31:0] $end
+$var reg 32 m copB [31:0] $end
+$var reg 8 n cycles [7:0] $end
+$var reg 1 C done $end
+$var reg 1 o first_cmpte $end
+$var reg 32 p peout [31:0] $end
+$var reg 4 q states [3:0] $end
+$upscope $end
+$scope module pe12 $end
+$var wire 10 r SEW [9:0] $end
+$var wire 1 % clk $end
+$var wire 8 s instruction [7:0] $end
+$var wire 32 t opA [31:0] $end
+$var wire 32 u opB [31:0] $end
+$var wire 32 v opC [31:0] $end
+$var wire 1 ! reset $end
+$var wire 1 F start $end
+$var wire 4 w vap [3:0] $end
+$var wire 1 x is_vap_instr $end
+$var reg 32 y accumulator [31:0] $end
+$var reg 32 z copB [31:0] $end
+$var reg 8 { cycles [7:0] $end
+$var reg 1 B done $end
+$var reg 1 | first_cmpte $end
+$var reg 32 } peout [31:0] $end
+$var reg 4 ~ states [3:0] $end
+$upscope $end
+$scope module pe13 $end
+$var wire 10 !" SEW [9:0] $end
+$var wire 1 % clk $end
+$var wire 8 "" instruction [7:0] $end
+$var wire 32 #" opA [31:0] $end
+$var wire 32 $" opB [31:0] $end
+$var wire 32 %" opC [31:0] $end
+$var wire 1 ! reset $end
+$var wire 1 F start $end
+$var wire 4 &" vap [3:0] $end
+$var wire 1 '" is_vap_instr $end
+$var reg 32 (" accumulator [31:0] $end
+$var reg 32 )" copB [31:0] $end
+$var reg 8 *" cycles [7:0] $end
+$var reg 1 A done $end
+$var reg 1 +" first_cmpte $end
+$var reg 32 ," peout [31:0] $end
+$var reg 4 -" states [3:0] $end
+$upscope $end
+$scope module pe14 $end
+$var wire 10 ." SEW [9:0] $end
+$var wire 1 % clk $end
+$var wire 8 /" instruction [7:0] $end
+$var wire 32 0" opA [31:0] $end
+$var wire 32 1" opB [31:0] $end
+$var wire 32 2" opC [31:0] $end
+$var wire 1 ! reset $end
+$var wire 1 F start $end
+$var wire 4 3" vap [3:0] $end
+$var wire 1 4" is_vap_instr $end
+$var reg 32 5" accumulator [31:0] $end
+$var reg 32 6" copB [31:0] $end
+$var reg 8 7" cycles [7:0] $end
+$var reg 1 @ done $end
+$var reg 1 8" first_cmpte $end
+$var reg 32 9" peout [31:0] $end
+$var reg 4 :" states [3:0] $end
+$upscope $end
+$scope module pe15 $end
+$var wire 10 ;" SEW [9:0] $end
+$var wire 1 % clk $end
+$var wire 8 <" instruction [7:0] $end
+$var wire 32 =" opA [31:0] $end
+$var wire 32 >" opB [31:0] $end
+$var wire 32 ?" opC [31:0] $end
+$var wire 1 ! reset $end
+$var wire 1 F start $end
+$var wire 4 @" vap [3:0] $end
+$var wire 1 A" is_vap_instr $end
+$var reg 32 B" accumulator [31:0] $end
+$var reg 32 C" copB [31:0] $end
+$var reg 8 D" cycles [7:0] $end
+$var reg 1 ? done $end
+$var reg 1 E" first_cmpte $end
+$var reg 32 F" peout [31:0] $end
+$var reg 4 G" states [3:0] $end
+$upscope $end
+$scope module pe16 $end
+$var wire 10 H" SEW [9:0] $end
+$var wire 1 % clk $end
+$var wire 8 I" instruction [7:0] $end
+$var wire 32 J" opA [31:0] $end
+$var wire 32 K" opB [31:0] $end
+$var wire 32 L" opC [31:0] $end
+$var wire 1 ! reset $end
+$var wire 1 F start $end
+$var wire 4 M" vap [3:0] $end
+$var wire 1 N" is_vap_instr $end
+$var reg 32 O" accumulator [31:0] $end
+$var reg 32 P" copB [31:0] $end
+$var reg 8 Q" cycles [7:0] $end
+$var reg 1 > done $end
+$var reg 1 R" first_cmpte $end
+$var reg 32 S" peout [31:0] $end
+$var reg 4 T" states [3:0] $end
+$upscope $end
+$scope module pe2 $end
+$var wire 10 U" SEW [9:0] $end
+$var wire 1 % clk $end
+$var wire 8 V" instruction [7:0] $end
+$var wire 32 W" opA [31:0] $end
+$var wire 32 X" opB [31:0] $end
+$var wire 32 Y" opC [31:0] $end
+$var wire 1 ! reset $end
+$var wire 1 F start $end
+$var wire 4 Z" vap [3:0] $end
+$var wire 1 [" is_vap_instr $end
+$var reg 32 \" accumulator [31:0] $end
+$var reg 32 ]" copB [31:0] $end
+$var reg 8 ^" cycles [7:0] $end
+$var reg 1 = done $end
+$var reg 1 _" first_cmpte $end
+$var reg 32 `" peout [31:0] $end
+$var reg 4 a" states [3:0] $end
+$upscope $end
+$scope module pe3 $end
+$var wire 10 b" SEW [9:0] $end
+$var wire 1 % clk $end
+$var wire 8 c" instruction [7:0] $end
+$var wire 32 d" opA [31:0] $end
+$var wire 32 e" opB [31:0] $end
+$var wire 32 f" opC [31:0] $end
+$var wire 1 ! reset $end
+$var wire 1 F start $end
+$var wire 4 g" vap [3:0] $end
+$var wire 1 h" is_vap_instr $end
+$var reg 32 i" accumulator [31:0] $end
+$var reg 32 j" copB [31:0] $end
+$var reg 8 k" cycles [7:0] $end
+$var reg 1 < done $end
+$var reg 1 l" first_cmpte $end
+$var reg 32 m" peout [31:0] $end
+$var reg 4 n" states [3:0] $end
+$upscope $end
+$scope module pe4 $end
+$var wire 10 o" SEW [9:0] $end
+$var wire 1 % clk $end
+$var wire 8 p" instruction [7:0] $end
+$var wire 32 q" opA [31:0] $end
+$var wire 32 r" opB [31:0] $end
+$var wire 32 s" opC [31:0] $end
+$var wire 1 ! reset $end
+$var wire 1 F start $end
+$var wire 4 t" vap [3:0] $end
+$var wire 1 u" is_vap_instr $end
+$var reg 32 v" accumulator [31:0] $end
+$var reg 32 w" copB [31:0] $end
+$var reg 8 x" cycles [7:0] $end
+$var reg 1 ; done $end
+$var reg 1 y" first_cmpte $end
+$var reg 32 z" peout [31:0] $end
+$var reg 4 {" states [3:0] $end
+$upscope $end
+$scope module pe5 $end
+$var wire 10 |" SEW [9:0] $end
+$var wire 1 % clk $end
+$var wire 8 }" instruction [7:0] $end
+$var wire 32 ~" opA [31:0] $end
+$var wire 32 !# opB [31:0] $end
+$var wire 32 "# opC [31:0] $end
+$var wire 1 ! reset $end
+$var wire 1 F start $end
+$var wire 4 ## vap [3:0] $end
+$var wire 1 $# is_vap_instr $end
+$var reg 32 %# accumulator [31:0] $end
+$var reg 32 &# copB [31:0] $end
+$var reg 8 '# cycles [7:0] $end
+$var reg 1 : done $end
+$var reg 1 (# first_cmpte $end
+$var reg 32 )# peout [31:0] $end
+$var reg 4 *# states [3:0] $end
+$upscope $end
+$scope module pe6 $end
+$var wire 10 +# SEW [9:0] $end
+$var wire 1 % clk $end
+$var wire 8 ,# instruction [7:0] $end
+$var wire 32 -# opA [31:0] $end
+$var wire 32 .# opB [31:0] $end
+$var wire 32 /# opC [31:0] $end
+$var wire 1 ! reset $end
+$var wire 1 F start $end
+$var wire 4 0# vap [3:0] $end
+$var wire 1 1# is_vap_instr $end
+$var reg 32 2# accumulator [31:0] $end
+$var reg 32 3# copB [31:0] $end
+$var reg 8 4# cycles [7:0] $end
+$var reg 1 9 done $end
+$var reg 1 5# first_cmpte $end
+$var reg 32 6# peout [31:0] $end
+$var reg 4 7# states [3:0] $end
+$upscope $end
+$scope module pe7 $end
+$var wire 10 8# SEW [9:0] $end
+$var wire 1 % clk $end
+$var wire 8 9# instruction [7:0] $end
+$var wire 32 :# opA [31:0] $end
+$var wire 32 ;# opB [31:0] $end
+$var wire 32 <# opC [31:0] $end
+$var wire 1 ! reset $end
+$var wire 1 F start $end
+$var wire 4 =# vap [3:0] $end
+$var wire 1 ># is_vap_instr $end
+$var reg 32 ?# accumulator [31:0] $end
+$var reg 32 @# copB [31:0] $end
+$var reg 8 A# cycles [7:0] $end
+$var reg 1 8 done $end
+$var reg 1 B# first_cmpte $end
+$var reg 32 C# peout [31:0] $end
+$var reg 4 D# states [3:0] $end
+$upscope $end
+$scope module pe8 $end
+$var wire 10 E# SEW [9:0] $end
+$var wire 1 % clk $end
+$var wire 8 F# instruction [7:0] $end
+$var wire 32 G# opA [31:0] $end
+$var wire 32 H# opB [31:0] $end
+$var wire 32 I# opC [31:0] $end
+$var wire 1 ! reset $end
+$var wire 1 F start $end
+$var wire 4 J# vap [3:0] $end
+$var wire 1 K# is_vap_instr $end
+$var reg 32 L# accumulator [31:0] $end
+$var reg 32 M# copB [31:0] $end
+$var reg 8 N# cycles [7:0] $end
+$var reg 1 7 done $end
+$var reg 1 O# first_cmpte $end
+$var reg 32 P# peout [31:0] $end
+$var reg 4 Q# states [3:0] $end
+$upscope $end
+$scope module pe9 $end
+$var wire 10 R# SEW [9:0] $end
+$var wire 1 % clk $end
+$var wire 8 S# instruction [7:0] $end
+$var wire 32 T# opA [31:0] $end
+$var wire 32 U# opB [31:0] $end
+$var wire 32 V# opC [31:0] $end
+$var wire 1 ! reset $end
+$var wire 1 F start $end
+$var wire 4 W# vap [3:0] $end
+$var wire 1 X# is_vap_instr $end
+$var reg 32 Y# accumulator [31:0] $end
+$var reg 32 Z# copB [31:0] $end
+$var reg 8 [# cycles [7:0] $end
+$var reg 1 6 done $end
+$var reg 1 \# first_cmpte $end
+$var reg 32 ]# peout [31:0] $end
+$var reg 4 ^# states [3:0] $end
+$upscope $end
+$upscope $end
+$upscope $end
+$enddefinitions $end
+#0
+$dumpvars
+bx ^#
+bx ]#
+x\#
+bx [#
+bx Z#
+bx Y#
+xX#
+bx W#
+bx V#
+bx U#
+bx T#
+bx S#
+bx R#
+bx Q#
+bx P#
+xO#
+bx N#
+bx M#
+bx L#
+xK#
+bx J#
+bx I#
+bx H#
+bx G#
+bx F#
+bx E#
+bx D#
+bx C#
+xB#
+bx A#
+bx @#
+bx ?#
+x>#
+bx =#
+bx <#
+bx ;#
+bx :#
+bx 9#
+bx 8#
+bx 7#
+bx 6#
+x5#
+bx 4#
+bx 3#
+bx 2#
+x1#
+bx 0#
+bx /#
+bx .#
+bx -#
+bx ,#
+bx +#
+bx *#
+bx )#
+x(#
+bx '#
+bx &#
+bx %#
+x$#
+bx ##
+bx "#
+bx !#
+bx ~"
+bx }"
+bx |"
+bx {"
+bx z"
+xy"
+bx x"
+bx w"
+bx v"
+xu"
+bx t"
+bx s"
+bx r"
+bx q"
+bx p"
+bx o"
+bx n"
+bx m"
+xl"
+bx k"
+bx j"
+bx i"
+xh"
+bx g"
+bx f"
+bx e"
+bx d"
+bx c"
+bx b"
+bx a"
+bx `"
+x_"
+bx ^"
+bx ]"
+bx \"
+x["
+bx Z"
+bx Y"
+bx X"
+bx W"
+bx V"
+bx U"
+bx T"
+bx S"
+xR"
+bx Q"
+bx P"
+bx O"
+xN"
+bx M"
+bx L"
+bx K"
+bx J"
+bx I"
+bx H"
+bx G"
+bx F"
+xE"
+bx D"
+bx C"
+bx B"
+xA"
+bx @"
+bx ?"
+bx >"
+bx ="
+bx <"
+bx ;"
+bx :"
+bx 9"
+x8"
+bx 7"
+bx 6"
+bx 5"
+x4"
+bx 3"
+bx 2"
+bx 1"
+bx 0"
+bx /"
+bx ."
+bx -"
+bx ,"
+x+"
+bx *"
+bx )"
+bx ("
+x'"
+bx &"
+bx %"
+bx $"
+bx #"
+bx ""
+bx !"
+bx ~
+bx }
+x|
+bx {
+bx z
+bx y
+xx
+bx w
+bx v
+bx u
+bx t
+bx s
+bx r
+bx q
+bx p
+xo
+bx n
+bx m
+bx l
+xk
+bx j
+bx i
+bx h
+bx g
+bx f
+bx e
+bx d
+bx c
+xb
+bx a
+bx `
+bx _
+x^
+bx ]
+bx \
+bx [
+bx Z
+bx Y
+bx X
+bx W
+bx V
+xU
+bx T
+bx S
+bx R
+xQ
+bx P
+bx O
+bx N
+bx M
+bx L
+bx K
+bx J
+bx I
+bx H
+bx G
+xF
+xE
+xD
+xC
+xB
+xA
+x@
+x?
+x>
+x=
+x<
+x;
+x:
+x9
+x8
+x7
+x6
+x5
+x4
+x3
+bx 2
+bx 1
+bx 0
+bx /
+bx .
+bx -
+bx ,
+bx +
+0*
+bx )
+bx (
+bx '
+bx &
+0%
+bx $
+x#
+bx "
+z!
+$end
+#5
+1%
+#10
+0%
+1*
+#15
+1%
+#20
+0%
+b100000000111000001100000010100000100000000110000001000000001 (
+b100000000111000001100000010100000100000000110000001000000001 /
+b100000000111000001100000010100000100000000110000001000000001 '
+b100000000111000001100000010100000100000000110000001000000001 .
+b100 +
+b100 1
+b100 P
+b100 ]
+b100 j
+b100 w
+b100 &"
+b100 3"
+b100 @"
+b100 M"
+b100 Z"
+b100 g"
+b100 t"
+b100 ##
+b100 0#
+b100 =#
+b100 J#
+b100 W#
+13
+14
+05
+1Q
+1^
+1k
+1x
+1'"
+14"
+1A"
+1N"
+1["
+1h"
+1u"
+1$#
+11#
+1>#
+1K#
+1X#
+b11 &
+b11 -
+b11 L
+b11 Y
+b11 f
+b11 s
+b11 ""
+b11 /"
+b11 <"
+b11 I"
+b11 V"
+b11 c"
+b11 p"
+b11 }"
+b11 ,#
+b11 9#
+b11 F#
+b11 S#
+#25
+1%
+#30
+0%
+#35
+1%
+#40
+0%
+#45
+1%
+#50
+0%
+#55
+1%
+#60
+0%
+#65
+1%
+#70
+0%
+#75
+1%
+#80
+0%
+#85
+1%
+#90
+0%
+#95
+1%
+#100
+0%
+#105
+1%
+#110
+0%
+#115
+1%
+#120
+0%
+#125
+1%
+#130
+0%
+#135
+1%
+#140
+0%
+#145
+1%
+#150
+0%
+#155
+1%
+#160
+0%
+#165
+1%
+#170
+0%
+#175
+1%
+#180
+0%
+#185
+1%
+#190
+0%
+#195
+1%
+#200
+0%
+#205
+1%
+#210
+0%
+#215
+1%
+#220
+0%
+#225
+1%
+#230
+0%
+#235
+1%
+#240
+0%
+#245
+1%
+#250
+0%
+#255
+1%
+#260
+0%
+#265
+1%
+#270
+0%
+#275
+1%
+#280
+0%
+#285
+1%
+#290
+0%
+#295
+1%
+#300
+0%
+#305
+1%
+#310
+0%
+#315
+1%
+#320
+0%
+#325
+1%
+#330
+0%
+#335
+1%
+#340
+0%
+#345
+1%
+#350
+0%
+#355
+1%
+#360
+0%
+#365
+1%
+#370
+0%
+#375
+1%
+#380
+0%
+#385
+1%
+#390
+0%
+#395
+1%
+#400
+0%
+#405
+1%
+#410
+0%
+#415
+1%
+#420
+0%
+#425
+1%
+#430
+0%
+#435
+1%
+#440
+0%
+#445
+1%
+#450
+0%
+#455
+1%
+#460
+0%
+#465
+1%
+#470
+0%
+#475
+1%
+#480
+0%
+#485
+1%
+#490
+0%
+#495
+1%
+#500
+0%
+#505
+1%
+#510
+0%
+#515
+1%
+#520
+0%
