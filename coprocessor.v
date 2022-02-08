@@ -57,8 +57,6 @@ module picorv32_pcpi_vec #(
 	reg [1:0] mem_state;
 	reg [1:0] mem_wordsize; //To tell whether to read/write whole word or a part of the word
 	reg [31:0] mem_rdata_word; // //Stores the data depending on mem_wordsize from mem_rdata 
-	reg [31:0] mem_rdata_word_next; //For strided loads
-	reg [31:0] mem_wdata_word_next; //For strided stores
 
 	reg mem_do_rdata; //Flag to read data
 	reg mem_do_wdata; //Flag to write data
@@ -1379,7 +1377,7 @@ end
 								mem_write_no <= mem_write_no - 1;
 							end
 							else if(mem_write_no == 1) begin
-								// $display("pcpi_ready condition: %d", $time);
+								$display("pcpi_ready condition: %d", $time);
 								mem_wordsize <= 0;
 								mem_valid <= 0;
 								pcpi_wait <= 0;

@@ -1710,13 +1710,14 @@ module picorv32 #(
 			cpu_state_fetch: begin
 				mem_do_rinst <= !decoder_trigger && !do_waitirq; //not understood
 				mem_wordsize <= 0;
-
+			    // $display("Line 1713 reg_next_pc: %d, current_pc:%d, time:%d", reg_next_pc, current_pc, $time);
 				current_pc = reg_next_pc;
 				// $display("Inside the fetch state of main processor, time:%d", $time);
 
 				(* parallel_case *)
 				case (1'b1)
 					latched_branch: begin
+						// $display("Line 1721 reg_next_pc: %d, current_pc:%d, time:%d", reg_next_pc, current_pc, $time);
 						current_pc = latched_store ? (latched_stalu ? alu_out_q : reg_out) & ~1 : reg_next_pc;
 						`debug($display("ST_RD:  %2d 0x%08x, BRANCH 0x%08x", latched_rd, reg_pc + (latched_compr ? 2 : 4), current_pc);)
 					end

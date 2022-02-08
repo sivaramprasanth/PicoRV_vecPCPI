@@ -46,6 +46,7 @@ assign alu_done = &{done1, done2, done3, done4, done5, done6, done7, done8, done
             new_opB <= 0;
             new_opC <= 0;
         end
+
         else if(!alu_enb && is_vec_instr) begin
             if(instr_vadd || instr_vmul || instr_vdot) begin
                 new_opA[511:0]  <= opA[511:0];

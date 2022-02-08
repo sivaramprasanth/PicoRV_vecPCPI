@@ -17,7 +17,7 @@ module alu_tb;
     reg [511:0] opB;
     reg [511:0] opC;
     wire [511:0] alu_out;
-    wire alu_done;
+    wire alu_done; 
 
     alu_block dut(
         .clk(clk),
